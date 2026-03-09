@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,16 +54,23 @@
   th { padding: 9px 14px; text-align: left; font-size: 9px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border); font-weight: 600; }
   tbody tr { border-bottom: 1px solid #0a1020; cursor: pointer; transition: background 0.12s; }
   tbody tr:hover { background: #101e38; }
-  td { padding: 11px 14px; font-size: 12px; }
+  td { padding: 11px 14px; font-size: 12px; vertical-align: middle; }
   .td-country { display: flex; align-items: center; gap: 10px; }
   .flag { font-size: 17px; line-height: 1; }
   .cname { color: #fff; font-weight: 600; font-size: 12px; }
   .bname { color: var(--dim); font-size: 10px; display: block; margin-top: 1px; font-family: var(--sans); }
-  .rate-val { color: var(--accent); font-weight: 700; font-size: 13px; }
-  .rate-range { color: var(--accent); font-weight: 700; font-size: 11px; letter-spacing: -0.3px; }
-  .ch-up { color: var(--red); font-weight: 600; }
-  .ch-dn { color: var(--green); font-weight: 600; }
-  .ch-flat { color: var(--dim); }
+  .rate-val  { color: var(--accent); font-weight: 700; font-size: 13px; }
+  .rate-range{ color: var(--accent); font-weight: 700; font-size: 11px; letter-spacing: -0.3px; }
+  .ch-up  { color: var(--red);  font-weight: 600; }
+  .ch-dn  { color: var(--green); font-weight: 600; }
+  .ch-flat{ color: var(--dim); }
+
+  /* Last change cell */
+  .lc-wrap { display: flex; flex-direction: column; gap: 2px; }
+  .lc-date { font-size: 10px; color: var(--dim); font-family: var(--sans); }
+  .lc-val  { font-size: 12px; font-weight: 700; }
+  .lc-none { color: #2a3a54; font-size: 11px; }
+
   .meeting-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; padding: 3px 8px; font-size: 10px; }
   .meeting-badge.urgent { background: rgba(255,178,0,0.10); border: 1px solid rgba(255,178,0,0.35); color: var(--warn); }
   .meeting-badge.normal { color: var(--dim); }
@@ -72,13 +78,13 @@
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
   .no-schedule { color: #2a3a54; font-size: 11px; }
 
-  /* Rating badge color-coded by tier */
+  /* Rating badges */
   .rtag { display: inline-block; border-radius: 3px; padding: 2px 7px; font-size: 11px; font-weight: 700; }
   .rtag-aaa { background: rgba(31,217,122,0.10); border: 1px solid rgba(31,217,122,0.25); color: #1fd97a; }
-  .rtag-aa  { background: rgba(0,200,240,0.09); border: 1px solid rgba(0,200,240,0.22); color: #00c8f0; }
+  .rtag-aa  { background: rgba(0,200,240,0.09);  border: 1px solid rgba(0,200,240,0.22);  color: #00c8f0; }
   .rtag-a   { background: rgba(255,183,77,0.10); border: 1px solid rgba(255,183,77,0.25); color: #ffb74d; }
-  .rtag-bbb { background: rgba(255,178,0,0.10); border: 1px solid rgba(255,178,0,0.30); color: var(--warn); }
-  .rtag-bb  { background: rgba(255,63,96,0.10); border: 1px solid rgba(255,63,96,0.28); color: var(--red); }
+  .rtag-bbb { background: rgba(255,178,0,0.10);  border: 1px solid rgba(255,178,0,0.30);  color: var(--warn); }
+  .rtag-bb  { background: rgba(255,63,96,0.10);  border: 1px solid rgba(255,63,96,0.28);  color: var(--red); }
 
   /* DETAIL VIEW */
   #detail-view { display: none; }
@@ -94,9 +100,9 @@
   .detail-info h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 3px; }
   .detail-info .dbank { color: var(--dim); font-size: 12px; font-family: var(--sans); }
   .detail-rate-box { text-align: right; }
-  .detail-rate { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .detail-rate   { font-size: 26px; font-weight: 700; color: var(--accent); }
   .detail-change { font-size: 13px; font-weight: 600; margin-top: 3px; }
-  #history-wrap { position: relative; height: 440px; }
+  #history-wrap  { position: relative; height: 440px; }
 </style>
 </head>
 <body>
@@ -119,13 +125,12 @@
       <div class="card">
         <div class="card-header">
           <span>Rate Shift · Current vs. 3 Months Ago</span>
-          <span class="sub">Above diagonal = hiking · Below = cutting · On = unchanged</span>
+          <span class="sub">Above diagonal = hiking · Below = cutting</span>
         </div>
         <div class="card-body">
           <div class="chart-wrap"><canvas id="scatterChart"></canvas></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-header">
           <span>S&amp;P Rating vs. Policy Rate</span>
@@ -147,6 +152,7 @@
           <tr>
             <th>Country / Central Bank</th>
             <th>Policy Rate</th>
+            <th>Last Rate Change</th>
             <th>Δ 3 Months</th>
             <th>S&amp;P Rating</th>
             <th>Next Meeting</th>
@@ -156,7 +162,7 @@
       </table>
     </div>
 
-  </div><!-- /dashboard -->
+  </div>
 
   <div id="detail-view">
     <button class="back-btn" onclick="showDashboard()">← Back to Dashboard</button>
@@ -187,7 +193,6 @@
 const TODAY = new Date("2026-03-09");
 const daysTo = s => s ? Math.ceil((new Date(s) - TODAY) / 86400000) : Infinity;
 
-// S&P numeric mapping (1 = best)
 const RATING_NUM = {
   "AAA":1,"AA+":2,"AA":3,"AA-":4,
   "A+":5,"A":6,"A-":7,
@@ -197,10 +202,10 @@ const RATING_NUM = {
 const RATING_LABEL = {1:"AAA",2:"AA+",3:"AA",4:"AA-",5:"A+",6:"A",7:"A-",8:"BBB+",9:"BBB",10:"BBB-",11:"BB+",12:"BB",13:"BB-"};
 
 function ratingClass(r) {
-  if (r==="AAA") return "rtag rtag-aaa";
+  if (r==="AAA")          return "rtag rtag-aaa";
   if (r.startsWith("AA")) return "rtag rtag-aa";
-  if (r.startsWith("A")) return "rtag rtag-a";
-  if (r.startsWith("BBB")) return "rtag rtag-bbb";
+  if (r.startsWith("A"))  return "rtag rtag-a";
+  if (r.startsWith("BBB"))return "rtag rtag-bbb";
   return "rtag rtag-bb";
 }
 
@@ -217,111 +222,127 @@ function makeSeries(wps) {
   return out;
 }
 
-// ─── BANK DATA (17 countries) ─────────────────────────────────────────
+// lastChange: { date: "YYYY-MM-DD", bps: signed integer (e.g. -25, +50) }
 const BANKS = [
-  // ── ADVANCED ECONOMIES ───────────────────────────────────────────
-  { code:"US", name:"United States", bank:"Federal Reserve", flag:"🇺🇸",
+  { code:"US", name:"United States",   bank:"Federal Reserve",        flag:"🇺🇸",
     current:4.375, prev3m:4.375, rateDisplay:"4.25% – 4.50%",
+    lastChange:{ date:"2024-12-18", bps:-25 },
     nextMeeting:"2026-03-19", color:"#4FC3F7", rating:"AA+",
     history: makeSeries([["2016-01-01",0.5],["2016-12-01",0.75],["2017-03-01",1.0],["2017-06-01",1.25],["2017-12-01",1.5],["2018-03-01",1.75],["2018-06-01",2.0],["2018-09-01",2.25],["2018-12-01",2.5],["2019-08-01",2.25],["2019-09-01",2.0],["2019-10-01",1.75],["2020-03-01",0.25],["2022-03-01",0.5],["2022-05-01",1.0],["2022-06-01",1.75],["2022-07-01",2.5],["2022-09-01",3.25],["2022-11-01",4.0],["2022-12-01",4.5],["2023-02-01",4.75],["2023-03-01",5.0],["2023-05-01",5.25],["2023-07-01",5.5],["2024-09-01",5.0],["2024-11-01",4.75],["2024-12-01",4.5],["2025-01-01",4.375]]) },
 
-  { code:"EU", name:"Euro Area", bank:"ECB", flag:"🇪🇺",
+  { code:"EU", name:"Euro Area",       bank:"ECB",                    flag:"🇪🇺",
     current:2.65, prev3m:3.15, rateDisplay:"2.65%",
+    lastChange:{ date:"2025-10-23", bps:-25 },
     nextMeeting:"2026-04-17", color:"#81C784", rating:"AAA",
     history: makeSeries([["2016-01-01",-0.3],["2016-03-01",-0.4],["2019-09-01",-0.5],["2022-07-01",0.0],["2022-09-01",0.75],["2022-11-01",1.5],["2023-02-01",2.5],["2023-06-01",3.5],["2023-09-01",4.0],["2024-06-01",3.75],["2024-09-01",3.5],["2024-12-01",3.0],["2025-01-01",2.75],["2025-03-01",2.5],["2025-06-01",2.25],["2025-10-01",2.65]]) },
 
-  { code:"UK", name:"United Kingdom", bank:"Bank of England", flag:"🇬🇧",
+  { code:"UK", name:"United Kingdom",  bank:"Bank of England",        flag:"🇬🇧",
     current:4.5, prev3m:4.75, rateDisplay:"4.50%",
+    lastChange:{ date:"2025-02-06", bps:-25 },
     nextMeeting:"2026-03-20", color:"#CE93D8", rating:"AA",
     history: makeSeries([["2016-01-01",0.5],["2016-08-01",0.25],["2017-11-01",0.5],["2018-08-01",0.75],["2020-03-01",0.1],["2021-12-01",0.25],["2022-02-01",0.5],["2022-03-01",0.75],["2022-05-01",1.0],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",3.0],["2022-12-01",3.5],["2023-02-01",4.0],["2023-03-01",4.25],["2023-05-01",4.5],["2023-06-01",5.0],["2023-08-01",5.25],["2024-08-01",5.0],["2024-11-01",4.75],["2025-02-01",4.5]]) },
 
-  { code:"JP", name:"Japan", bank:"Bank of Japan", flag:"🇯🇵",
+  { code:"JP", name:"Japan",           bank:"Bank of Japan",          flag:"🇯🇵",
     current:0.5, prev3m:0.5, rateDisplay:"0.50%",
+    lastChange:{ date:"2025-01-24", bps:+25 },
     nextMeeting:"2026-03-19", color:"#FFB74D", rating:"A+",
     history: makeSeries([["2016-01-01",0.1],["2016-02-01",-0.1],["2024-03-01",0.1],["2024-07-01",0.25],["2025-01-01",0.5]]) },
 
-  { code:"CA", name:"Canada", bank:"Bank of Canada", flag:"🇨🇦",
+  { code:"CA", name:"Canada",          bank:"Bank of Canada",         flag:"🇨🇦",
     current:3.0, prev3m:3.25, rateDisplay:"3.00%",
+    lastChange:{ date:"2025-01-29", bps:-25 },
     nextMeeting:"2026-03-12", color:"#F06292", rating:"AAA",
     history: makeSeries([["2016-01-01",0.5],["2017-07-01",0.75],["2017-09-01",1.0],["2018-01-01",1.25],["2018-07-01",1.5],["2019-03-01",1.75],["2020-03-01",0.5],["2020-04-01",0.25],["2022-03-01",0.5],["2022-04-01",1.0],["2022-06-01",1.5],["2022-07-01",2.5],["2022-09-01",3.25],["2022-10-01",3.75],["2022-12-01",4.25],["2023-01-01",4.5],["2023-06-01",5.0],["2024-06-01",4.75],["2024-09-01",4.25],["2024-10-01",3.75],["2024-12-01",3.25],["2025-01-01",3.0]]) },
 
-  { code:"AU", name:"Australia", bank:"Reserve Bank of Australia", flag:"🇦🇺",
+  { code:"AU", name:"Australia",       bank:"Reserve Bank of Australia", flag:"🇦🇺",
     current:4.1, prev3m:4.35, rateDisplay:"4.10%",
+    lastChange:{ date:"2025-02-18", bps:-25 },
     nextMeeting:"2026-04-07", color:"#4DB6AC", rating:"AAA",
     history: makeSeries([["2016-01-01",2.0],["2016-05-01",1.75],["2016-08-01",1.5],["2019-06-01",1.25],["2019-07-01",1.0],["2019-10-01",0.75],["2020-03-01",0.5],["2020-11-01",0.1],["2022-05-01",0.85],["2022-06-01",1.35],["2022-07-01",1.85],["2022-08-01",2.35],["2022-09-01",2.85],["2022-10-01",2.6],["2022-11-01",2.85],["2022-12-01",3.1],["2023-02-01",3.35],["2023-03-01",3.6],["2023-05-01",3.85],["2023-06-01",4.1],["2023-11-01",4.35],["2025-02-01",4.1]]) },
 
-  { code:"CH", name:"Switzerland", bank:"SNB", flag:"🇨🇭",
+  { code:"CH", name:"Switzerland",     bank:"SNB",                    flag:"🇨🇭",
     current:0.25, prev3m:0.5, rateDisplay:"0.25%",
+    lastChange:{ date:"2025-03-20", bps:-25 },
     nextMeeting:"2026-03-20", color:"#FF8A65", rating:"AAA",
     history: makeSeries([["2016-01-01",-0.75],["2022-06-01",-0.25],["2022-09-01",0.5],["2022-12-01",1.0],["2023-03-01",1.5],["2023-06-01",1.75],["2024-03-01",1.5],["2024-06-01",1.25],["2024-09-01",1.0],["2024-12-01",0.5],["2025-03-01",0.25]]) },
 
-  { code:"SE", name:"Sweden", bank:"Riksbank", flag:"🇸🇪",
+  { code:"SE", name:"Sweden",          bank:"Riksbank",               flag:"🇸🇪",
     current:2.25, prev3m:2.75, rateDisplay:"2.25%",
+    lastChange:{ date:"2025-05-07", bps:-25 },
     nextMeeting:"2026-03-14", color:"#AED581", rating:"AAA",
     history: makeSeries([["2016-01-01",-0.35],["2019-01-01",-0.25],["2019-12-01",0.0],["2022-05-01",0.25],["2022-07-01",0.75],["2022-09-01",1.75],["2022-11-01",2.5],["2023-02-01",3.0],["2023-04-01",3.5],["2023-09-01",4.0],["2024-05-01",3.75],["2024-08-01",3.5],["2024-10-01",3.25],["2024-11-01",2.75],["2025-01-01",2.5],["2025-05-01",2.25]]) },
 
-  { code:"NO", name:"Norway", bank:"Norges Bank", flag:"🇳🇴",
+  { code:"NO", name:"Norway",          bank:"Norges Bank",            flag:"🇳🇴",
     current:4.5, prev3m:4.5, rateDisplay:"4.50%",
+    lastChange:{ date:"2024-01-25", bps:+25 },
     nextMeeting:"2026-03-27", color:"#80DEEA", rating:"AAA",
     history: makeSeries([["2016-01-01",0.75],["2016-03-01",0.5],["2018-09-01",0.75],["2019-09-01",1.5],["2020-03-01",0.5],["2020-05-01",0.0],["2021-09-01",0.25],["2021-12-01",0.5],["2022-03-01",0.75],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",2.75],["2023-02-01",3.0],["2023-03-01",3.25],["2023-05-01",3.75],["2023-08-01",4.25],["2024-01-01",4.5]]) },
 
-  { code:"NZ", name:"New Zealand", bank:"RBNZ", flag:"🇳🇿",
+  { code:"NZ", name:"New Zealand",     bank:"RBNZ",                   flag:"🇳🇿",
     current:3.75, prev3m:4.25, rateDisplay:"3.75%",
+    lastChange:{ date:"2025-02-19", bps:-50 },
     nextMeeting:"2026-04-09", color:"#B39DDB", rating:"AA+",
     history: makeSeries([["2016-01-01",2.5],["2016-03-01",2.25],["2016-08-01",2.0],["2019-05-01",1.5],["2019-08-01",1.0],["2020-03-01",0.25],["2021-10-01",0.5],["2022-02-01",1.0],["2022-04-01",1.5],["2022-05-01",2.0],["2022-07-01",2.5],["2022-08-01",3.0],["2022-10-01",3.5],["2022-11-01",4.25],["2023-02-01",4.75],["2023-04-01",5.25],["2023-07-01",5.5],["2024-08-01",5.25],["2024-10-01",4.75],["2024-11-01",4.25],["2025-02-01",3.75]]) },
 
-  { code:"KR", name:"South Korea", bank:"Bank of Korea", flag:"🇰🇷",
+  { code:"KR", name:"South Korea",     bank:"Bank of Korea",          flag:"🇰🇷",
     current:2.75, prev3m:3.0, rateDisplay:"2.75%",
+    lastChange:{ date:"2025-02-25", bps:-25 },
     nextMeeting:"2026-04-17", color:"#F48FB1", rating:"AA",
     history: makeSeries([["2016-01-01",1.5],["2016-06-01",1.25],["2017-11-01",1.5],["2019-07-01",1.25],["2020-03-01",0.75],["2020-05-01",0.5],["2021-08-01",0.75],["2021-11-01",1.0],["2022-01-01",1.25],["2022-04-01",1.5],["2022-05-01",1.75],["2022-07-01",2.25],["2022-08-01",2.5],["2022-10-01",3.0],["2023-01-01",3.25],["2023-02-01",3.5],["2024-10-01",3.25],["2024-11-01",3.0],["2025-02-01",2.75]]) },
 
-  { code:"CN", name:"China", bank:"People's Bank of China", flag:"🇨🇳",
+  { code:"CN", name:"China",           bank:"People's Bank of China", flag:"🇨🇳",
     current:3.1, prev3m:3.1, rateDisplay:"3.10%",
+    lastChange:{ date:"2024-10-21", bps:-25 },
     nextMeeting:null, color:"#FFD54F", rating:"A+",
     history: makeSeries([["2016-01-01",4.35],["2019-08-01",4.25],["2019-11-01",4.15],["2020-02-01",4.05],["2020-04-01",3.85],["2022-05-01",3.7],["2022-08-01",3.65],["2023-06-01",3.55],["2023-08-01",3.45],["2024-07-01",3.35],["2024-10-01",3.1]]) },
 
   // ── EMERGING MARKETS ─────────────────────────────────────────────
-  { code:"IN", name:"India", bank:"Reserve Bank of India", flag:"🇮🇳",
+  { code:"IN", name:"India",           bank:"Reserve Bank of India",  flag:"🇮🇳",
     current:6.25, prev3m:6.5, rateDisplay:"6.25%",
+    lastChange:{ date:"2025-02-07", bps:-25 },
     nextMeeting:"2026-04-09", color:"#FF8F00", rating:"BBB-",
     history: makeSeries([["2016-01-01",6.75],["2016-04-01",6.5],["2017-08-01",6.0],["2018-06-01",6.25],["2018-08-01",6.5],["2019-06-01",5.75],["2019-08-01",5.4],["2019-10-01",5.15],["2020-03-01",4.4],["2020-05-01",4.0],["2022-05-01",4.4],["2022-06-01",4.9],["2022-08-01",5.4],["2022-09-01",5.9],["2022-12-01",6.25],["2023-02-01",6.5],["2025-02-01",6.25]]) },
 
-  { code:"ID", name:"Indonesia", bank:"Bank Indonesia", flag:"🇮🇩",
+  { code:"ID", name:"Indonesia",       bank:"Bank Indonesia",         flag:"🇮🇩",
     current:5.75, prev3m:6.0, rateDisplay:"5.75%",
+    lastChange:{ date:"2025-01-15", bps:-25 },
     nextMeeting:"2026-03-19", color:"#EF5350", rating:"BBB",
     history: makeSeries([["2016-01-01",7.25],["2016-03-01",6.75],["2016-06-01",6.5],["2016-09-01",5.0],["2018-05-01",5.25],["2018-06-01",5.5],["2018-08-01",5.75],["2019-07-01",5.5],["2019-09-01",5.25],["2019-10-01",5.0],["2020-02-01",4.75],["2020-03-01",4.5],["2020-06-01",4.25],["2020-07-01",4.0],["2020-11-01",3.75],["2022-08-01",3.75],["2022-09-01",4.25],["2022-10-01",4.75],["2022-11-01",5.25],["2023-01-01",5.75],["2024-09-01",6.0],["2025-01-01",5.75]]) },
 
-  { code:"MX", name:"Mexico", bank:"Banxico", flag:"🇲🇽",
+  { code:"MX", name:"Mexico",          bank:"Banxico",                flag:"🇲🇽",
     current:9.0, prev3m:10.25, rateDisplay:"9.00%",
+    lastChange:{ date:"2025-05-15", bps:-50 },
     nextMeeting:"2026-03-27", color:"#66BB6A", rating:"BBB-",
     history: makeSeries([["2016-01-01",3.25],["2016-03-01",3.75],["2016-06-01",4.25],["2016-11-01",5.25],["2017-06-01",6.75],["2017-11-01",7.0],["2018-02-01",7.25],["2018-12-01",8.25],["2019-08-01",8.0],["2019-09-01",7.75],["2019-10-01",7.5],["2020-02-01",7.25],["2020-04-01",6.5],["2020-06-01",5.5],["2020-08-01",4.5],["2021-06-01",4.25],["2021-08-01",4.5],["2021-09-01",4.75],["2021-11-01",5.0],["2022-02-01",6.0],["2022-05-01",7.0],["2022-06-01",7.75],["2022-08-01",8.5],["2022-09-01",9.25],["2022-11-01",10.0],["2023-02-01",11.0],["2023-03-01",11.25],["2024-03-01",11.0],["2024-06-01",10.5],["2024-09-01",10.25],["2024-11-01",10.0],["2025-02-01",9.5],["2025-05-01",9.0]]) },
 
-  { code:"BR", name:"Brazil", bank:"Banco Central do Brasil", flag:"🇧🇷",
+  { code:"BR", name:"Brazil",          bank:"Banco Central do Brasil",flag:"🇧🇷",
     current:13.75, prev3m:11.25, rateDisplay:"13.75%",
+    lastChange:{ date:"2025-03-19", bps:+100 },
     nextMeeting:"2026-03-19", color:"#26A69A", rating:"BB-",
     history: makeSeries([["2016-01-01",14.25],["2016-10-01",13.75],["2017-04-01",11.25],["2017-07-01",9.25],["2017-10-01",7.5],["2018-03-01",6.5],["2019-07-01",6.0],["2019-09-01",5.5],["2019-10-01",5.0],["2020-02-01",4.25],["2020-05-01",3.0],["2020-08-01",2.0],["2021-03-01",2.75],["2021-05-01",3.5],["2021-06-01",4.25],["2021-08-01",5.25],["2021-09-01",6.25],["2021-10-01",7.75],["2021-12-01",9.25],["2022-02-01",10.75],["2022-03-01",11.75],["2022-05-01",12.75],["2022-06-01",13.25],["2022-08-01",13.75],["2023-08-01",13.25],["2023-09-01",12.75],["2023-10-01",12.25],["2023-11-01",11.75],["2023-12-01",11.25],["2024-03-01",10.75],["2024-05-01",10.5],["2024-09-01",10.75],["2024-11-01",11.25],["2025-01-01",12.25],["2025-03-01",13.75]]) },
 
-  { code:"ZA", name:"South Africa", bank:"SARB", flag:"🇿🇦",
+  { code:"ZA", name:"South Africa",    bank:"SARB",                   flag:"🇿🇦",
     current:7.5, prev3m:8.0, rateDisplay:"7.50%",
+    lastChange:{ date:"2025-01-30", bps:-25 },
     nextMeeting:"2026-03-20", color:"#EC407A", rating:"BB-",
     history: makeSeries([["2016-01-01",6.75],["2016-03-01",7.0],["2020-01-01",6.5],["2020-03-01",5.75],["2020-04-01",4.75],["2020-07-01",3.5],["2021-11-01",3.75],["2022-01-01",4.0],["2022-03-01",4.25],["2022-05-01",4.75],["2022-07-01",5.5],["2022-09-01",6.25],["2022-11-01",7.0],["2023-01-01",7.25],["2023-03-01",7.75],["2023-05-01",8.25],["2024-09-01",8.0],["2024-11-01",7.75],["2025-01-01",7.5]]) },
 ];
 
 // ─── CHART HELPERS ────────────────────────────────────────────────────
-const MONO_FONT = "'IBM Plex Mono'";
+const MONO = "'IBM Plex Mono'";
 
 function labelPlugin(dsIdx) {
   return {
-    id: `lbl${dsIdx}`,
+    id:`lbl${dsIdx}`,
     afterDatasetsDraw(chart) {
       const ctx = chart.ctx;
       const meta = chart.getDatasetMeta(dsIdx);
-      const ds = chart.data.datasets[dsIdx];
+      const ds   = chart.data.datasets[dsIdx];
       meta.data.forEach((pt, i) => {
         const d = ds.data[i];
         if (!d || !d.label) return;
         ctx.save();
-        ctx.font = `600 9px ${MONO_FONT}`;
+        ctx.font = `600 9px ${MONO}`;
         ctx.fillStyle = "#c0cce0";
         ctx.textAlign = "left";
         ctx.fillText(d.label, pt.x + 11, pt.y - 5);
@@ -333,12 +354,10 @@ function labelPlugin(dsIdx) {
 
 const commonTooltip = {
   backgroundColor:"#0c1526", borderColor:"#182840", borderWidth:1,
-  titleFont:{family:MONO_FONT, size:12},
-  bodyFont:{family:MONO_FONT, size:11}
+  titleFont:{family:MONO,size:12}, bodyFont:{family:MONO,size:11}
 };
 
 // ─── SCATTER: 3mo shift ───────────────────────────────────────────────
-// Y axis max needs to cover Brazil (~14%), set to 16
 const scatterData = BANKS.map(b => ({
   x:b.prev3m, y:b.current, label:b.code,
   color:b.color, name:b.name, bank:b.bank, rateDisplay:b.rateDisplay
@@ -346,42 +365,35 @@ const scatterData = BANKS.map(b => ({
 
 new Chart(document.getElementById("scatterChart"), {
   type:"scatter",
-  data:{
-    datasets:[
-      { label:"diag", data:[{x:-1,y:-1},{x:16,y:16}], type:"line",
-        borderColor:"#1a3060", borderWidth:1.5, borderDash:[6,4],
-        pointRadius:0, tension:0, fill:false },
-      { label:"banks", data:scatterData,
-        pointBackgroundColor:scatterData.map(d=>d.color),
-        pointBorderColor:"#060c1c", pointBorderWidth:2,
-        pointRadius:8, pointHoverRadius:11 }
-    ]
-  },
+  data:{ datasets:[
+    { label:"diag", data:[{x:-1,y:-1},{x:16,y:16}], type:"line",
+      borderColor:"#1a3060", borderWidth:1.5, borderDash:[6,4],
+      pointRadius:0, tension:0, fill:false },
+    { label:"banks", data:scatterData,
+      pointBackgroundColor:scatterData.map(d=>d.color),
+      pointBorderColor:"#060c1c", pointBorderWidth:2,
+      pointRadius:8, pointHoverRadius:11 }
+  ]},
   options:{
     responsive:true, maintainAspectRatio:false,
     scales:{
       x:{ type:"linear", min:-1, max:16,
-          title:{display:true,text:"Rate 3 Months Ago (%)",color:"#445870",font:{family:MONO_FONT,size:10}},
+          title:{display:true,text:"Rate 3 Months Ago (%)",color:"#445870",font:{family:MONO,size:10}},
           ticks:{color:"#445870",font:{size:9},callback:v=>`${v}%`},
           grid:{color:"#0d1a2e"}, border:{color:"#182840"} },
       y:{ type:"linear", min:-1, max:16,
-          title:{display:true,text:"Current Rate (%)",color:"#445870",font:{family:MONO_FONT,size:10}},
+          title:{display:true,text:"Current Rate (%)",color:"#445870",font:{family:MONO,size:10}},
           ticks:{color:"#445870",font:{size:9},callback:v=>`${v}%`},
           grid:{color:"#0d1a2e"}, border:{color:"#182840"} }
     },
-    plugins:{
-      legend:{display:false},
-      tooltip:{ ...commonTooltip,
-        callbacks:{
-          title: i => i[0].raw.name||"",
-          label: i => {
-            const d=i.raw; if(!d.name) return "";
-            const ch=+(d.y-d.x).toFixed(2);
-            return [`${d.bank}`,`Current: ${d.rateDisplay}`,`3mo ago: ${d.x.toFixed(2)}%`,`Δ Change: ${ch>=0?"+":""}${ch}%`];
-          }
-        }
+    plugins:{ legend:{display:false}, tooltip:{ ...commonTooltip,
+      callbacks:{
+        title:i=>i[0].raw.name||"",
+        label:i=>{ const d=i.raw; if(!d.name) return "";
+          const ch=+(d.y-d.x).toFixed(2);
+          return [`${d.bank}`,`Current: ${d.rateDisplay}`,`3mo ago: ${d.x.toFixed(2)}%`,`Δ Change: ${ch>=0?"+":""}${ch}%`]; }
       }
-    }
+    }}
   },
   plugins:[labelPlugin(1)]
 });
@@ -394,56 +406,68 @@ const ratingData = BANKS.map(b => ({
 
 new Chart(document.getElementById("ratingChart"), {
   type:"scatter",
-  data:{
-    datasets:[{
-      label:"banks", data:ratingData,
-      pointBackgroundColor:ratingData.map(d=>d.color),
-      pointBorderColor:"#060c1c", pointBorderWidth:2,
-      pointRadius:8, pointHoverRadius:11
-    }]
-  },
+  data:{ datasets:[{
+    label:"banks", data:ratingData,
+    pointBackgroundColor:ratingData.map(d=>d.color),
+    pointBorderColor:"#060c1c", pointBorderWidth:2,
+    pointRadius:8, pointHoverRadius:11
+  }]},
   options:{
     responsive:true, maintainAspectRatio:false,
     scales:{
       x:{ type:"linear", min:0.5, max:13.5,
-          title:{display:true,text:"S&P Sovereign Credit Rating",color:"#445870",font:{family:MONO_FONT,size:10}},
+          title:{display:true,text:"S&P Sovereign Credit Rating",color:"#445870",font:{family:MONO,size:10}},
           ticks:{color:"#445870",font:{size:9},stepSize:1,callback:v=>RATING_LABEL[v]||"",maxRotation:45},
           grid:{color:"#0d1a2e"}, border:{color:"#182840"} },
       y:{ type:"linear", min:-1, max:16,
-          title:{display:true,text:"Current Policy Rate (%)",color:"#445870",font:{family:MONO_FONT,size:10}},
+          title:{display:true,text:"Current Policy Rate (%)",color:"#445870",font:{family:MONO,size:10}},
           ticks:{color:"#445870",font:{size:9},callback:v=>`${v}%`},
           grid:{color:"#0d1a2e"}, border:{color:"#182840"} }
     },
-    plugins:{
-      legend:{display:false},
-      tooltip:{ ...commonTooltip,
-        callbacks:{
-          title: i => i[0].raw.name||"",
-          label: i => {
-            const d=i.raw;
-            return [`S&P: ${d.rating}`, `Rate: ${d.rateDisplay}`];
-          }
-        }
+    plugins:{ legend:{display:false}, tooltip:{ ...commonTooltip,
+      callbacks:{
+        title:i=>i[0].raw.name||"",
+        label:i=>{ const d=i.raw; return [`S&P: ${d.rating}`,`Rate: ${d.rateDisplay}`]; }
       }
-    }
+    }}
   },
   plugins:[labelPlugin(0)]
 });
 
 // ─── TABLE ────────────────────────────────────────────────────────────
+// Format lastChange date "YYYY-MM-DD" → "Jan 24, 2025"
+function fmtDate(s) {
+  if (!s) return null;
+  const d = new Date(s + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+}
+
 const tbody = document.getElementById("rate-table-body");
 BANKS.forEach(b => {
-  const ch = +(b.current-b.prev3m).toFixed(2);
-  const days = daysTo(b.nextMeeting);
-  const urgent = days>=0 && days<=7;
+  const ch    = +(b.current - b.prev3m).toFixed(2);
+  const days  = daysTo(b.nextMeeting);
+  const urgent= days >= 0 && days <= 7;
   const chClass = ch<0?"ch-dn":ch>0?"ch-up":"ch-flat";
-  const chText = ch===0?"—":`${ch>0?"+":""}${ch.toFixed(2)}%`;
+  const chText  = ch===0?"—":`${ch>0?"+":""}${ch.toFixed(2)}%`;
   const isRange = b.rateDisplay.includes("–");
 
+  // Last change cell
+  let lcHtml;
+  if (b.lastChange) {
+    const sign  = b.lastChange.bps > 0 ? "+" : "";
+    const color = b.lastChange.bps > 0 ? "var(--red)" : b.lastChange.bps < 0 ? "var(--green)" : "var(--dim)";
+    lcHtml = `<div class="lc-wrap">
+      <span class="lc-date">${fmtDate(b.lastChange.date)}</span>
+      <span class="lc-val" style="color:${color}">${sign}${b.lastChange.bps} bps</span>
+    </div>`;
+  } else {
+    lcHtml = `<span class="lc-none">—</span>`;
+  }
+
   let meetHtml;
-  if (!b.nextMeeting) meetHtml=`<span class="no-schedule">Ad hoc</span>`;
-  else if (urgent) meetHtml=`<span class="meeting-badge urgent"><span class="pulse"></span>${b.nextMeeting} · ${days}d</span>`;
-  else meetHtml=`<span class="meeting-badge normal">${b.nextMeeting}</span>`;
+  if (!b.nextMeeting) meetHtml = `<span class="no-schedule">Ad hoc</span>`;
+  else if (urgent)    meetHtml = `<span class="meeting-badge urgent"><span class="pulse"></span>${b.nextMeeting} · ${days}d</span>`;
+  else                meetHtml = `<span class="meeting-badge normal">${b.nextMeeting}</span>`;
 
   const tr = document.createElement("tr");
   tr.innerHTML = `
@@ -452,6 +476,7 @@ BANKS.forEach(b => {
       <span><span class="cname">${b.name}</span><span class="bname">${b.bank}</span></span>
     </div></td>
     <td><span class="${isRange?"rate-range":"rate-val"}">${b.rateDisplay}</span></td>
+    <td>${lcHtml}</td>
     <td class="${chClass}">${chText}</td>
     <td><span class="${ratingClass(b.rating)}">${b.rating}</span></td>
     <td>${meetHtml}</td>`;
@@ -463,7 +488,7 @@ BANKS.forEach(b => {
 let histChart = null;
 
 function showDetail(code) {
-  const b = BANKS.find(x=>x.code===code);
+  const b = BANKS.find(x => x.code === code);
   if (!b) return;
 
   document.getElementById("d-flag").textContent = b.flag;
@@ -471,62 +496,55 @@ function showDetail(code) {
   document.getElementById("d-bank").textContent = b.bank;
   document.getElementById("d-rate").textContent = b.rateDisplay;
 
-  const ch = +(b.current-b.prev3m).toFixed(2);
+  const ch = +(b.current - b.prev3m).toFixed(2);
   const chEl = document.getElementById("d-change");
-  chEl.textContent = ch===0?"Unchanged vs 3mo ago":`${ch>0?"+":""}${ch.toFixed(2)}% vs 3mo ago`;
+  chEl.textContent = ch===0 ? "Unchanged vs 3mo ago" : `${ch>0?"+":""}${ch.toFixed(2)}% vs 3mo ago`;
   chEl.style.color = ch<0?"var(--green)":ch>0?"var(--red)":"var(--dim)";
 
   const meetEl = document.getElementById("d-meeting");
   if (b.nextMeeting) {
     const days = daysTo(b.nextMeeting);
     meetEl.textContent = `Next meeting: ${b.nextMeeting}${days>=0&&days<=7?` · ⚠ ${days}d away`:""}`;
-    meetEl.style.color = days>=0&&days<=7?"var(--warn)":"var(--dim)";
+    meetEl.style.color  = days>=0&&days<=7?"var(--warn)":"var(--dim)";
   } else {
     meetEl.textContent = "No fixed schedule";
   }
 
-  if (histChart) { histChart.destroy(); histChart=null; }
+  if (histChart) { histChart.destroy(); histChart = null; }
 
-  const labels = b.history.map(d=>d.x);
-  const values = b.history.map(d=>d.y);
-  const tickLabels = labels.map(l=>l.endsWith("-01")?l.slice(0,4):"");
+  const labels     = b.history.map(d => d.x);
+  const values     = b.history.map(d => d.y);
+  const tickLabels = labels.map(l => l.endsWith("-01") ? l.slice(0,4) : "");
 
   histChart = new Chart(document.getElementById("historyChart"), {
     type:"line",
-    data:{
-      labels,
-      datasets:[{
-        data:values, borderColor:b.color, borderWidth:2.5,
-        pointRadius:0, pointHoverRadius:5,
-        pointHoverBackgroundColor:b.color, pointHoverBorderColor:"#060c1c", pointHoverBorderWidth:2,
-        tension:0, stepped:true,
-        fill:{target:"origin", above:b.color+"18", below:b.color+"18"}
-      }]
-    },
+    data:{ labels, datasets:[{
+      data:values, borderColor:b.color, borderWidth:2.5,
+      pointRadius:0, pointHoverRadius:5,
+      pointHoverBackgroundColor:b.color,
+      pointHoverBorderColor:"#060c1c", pointHoverBorderWidth:2,
+      tension:0, stepped:true,
+      fill:{target:"origin", above:b.color+"18", below:b.color+"18"}
+    }]},
     options:{
       responsive:true, maintainAspectRatio:false, animation:{duration:400},
-      interaction:{mode:"index",intersect:false},
+      interaction:{mode:"index", intersect:false},
       scales:{
-        x:{ ticks:{color:"#445870",font:{size:10},maxRotation:45,callback:(v,i)=>tickLabels[i]||null,autoSkip:false},
+        x:{ ticks:{color:"#445870",font:{size:10},maxRotation:45,
+              callback:(v,i)=>tickLabels[i]||null, autoSkip:false},
             grid:{color:"#0d1a2e"}, border:{color:"#182840"} },
         y:{ ticks:{color:"#445870",font:{size:10},callback:v=>`${v}%`},
             grid:{color:"#0d1a2e"}, border:{color:"#182840"} }
       },
-      plugins:{
-        legend:{display:false},
-        tooltip:{ ...commonTooltip,
-          callbacks:{
-            title:i=>i[0].label,
-            label:i=>`  Rate: ${i.raw.toFixed(2)}%`
-          }
-        }
-      }
+      plugins:{ legend:{display:false}, tooltip:{ ...commonTooltip,
+        callbacks:{ title:i=>i[0].label, label:i=>`  Rate: ${i.raw.toFixed(2)}%` }
+      }}
     },
     plugins:[{
       id:"zero",
       afterDraw(chart) {
         const {ctx, chartArea:{left,right}, scales:{y}} = chart;
-        if (y.min>=0) return;
+        if (y.min >= 0) return;
         const yZ = y.getPixelForValue(0);
         ctx.save(); ctx.strokeStyle="#1e3050"; ctx.lineWidth=1;
         ctx.setLineDash([5,4]); ctx.beginPath();
@@ -535,15 +553,15 @@ function showDetail(code) {
     }]
   });
 
-  document.getElementById("dashboard-view").style.display="none";
-  document.getElementById("detail-view").style.display="block";
+  document.getElementById("dashboard-view").style.display = "none";
+  document.getElementById("detail-view").style.display   = "block";
   window.scrollTo(0,0);
 }
 
 function showDashboard() {
-  document.getElementById("detail-view").style.display="none";
-  document.getElementById("dashboard-view").style.display="block";
-  if (histChart) { histChart.destroy(); histChart=null; }
+  document.getElementById("detail-view").style.display   = "none";
+  document.getElementById("dashboard-view").style.display = "block";
+  if (histChart) { histChart.destroy(); histChart = null; }
 }
 </script>
 </body>
