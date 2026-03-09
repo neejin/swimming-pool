@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Global Policy Rates · Swimming Pool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060c1c;
+    --surface: #0c1526;
+    --surface2: #0f1a2e;
+    --border: #182840;
+    --text: #c0cce0;
+    --dim: #445870;
+    --accent: #00c8f0;
+    --green: #1fd97a;
+    --red: #ff3f60;
+    --warn: #ffb200;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .header-title { font-size: 10px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .header-meta { font-size: 10px; color: var(--dim); text-align: right; line-height: 1.8; }
+  .header-meta .warn { color: var(--warn); }
+
+  /* MAIN */
+  .main { padding: 24px 32px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-body { padding: 16px 20px; }
+
+  /* SCATTER CHART */
+  #scatter-wrap { position: relative; height: 420px; }
+  #scatter-hint { font-size: 10px; color: #1e3050; margin-top: 4px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #090e1c; }
+  th {
+    padding: 10px 18px; text-align: left;
+    font-size: 9px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); font-weight: 600;
+  }
+  tbody tr {
+    border-bottom: 1px solid #0a1020;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  tbody tr:hover { background: #101e38; }
+  td { padding: 13px 18px; font-size: 12px; }
+  .td-country { display: flex; align-items: center; gap: 10px; }
+  .td-country .flag { font-size: 18px; line-height: 1; }
+  .td-country .cname { color: #fff; font-weight: 600; font-size: 13px; }
+  .td-country .bname { color: var(--dim); font-size: 10px; display: block; margin-top: 1px; font-family: var(--sans); }
+  .rate-val { color: var(--accent); font-weight: 700; font-size: 15px; }
+  .ch-up { color: var(--red); font-weight: 600; }
+  .ch-dn { color: var(--green); font-weight: 600; }
+  .ch-flat { color: var(--dim); }
+  .meeting-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 4px; padding: 3px 8px; font-size: 11px;
+  }
+  .meeting-badge.urgent {
+    background: rgba(255,178,0,0.10);
+    border: 1px solid rgba(255,178,0,0.35);
+    color: var(--warn);
+  }
+  .meeting-badge.normal { color: var(--dim); }
+  .pulse {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--warn);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+  }
+  .no-schedule { color: #2a3a54; font-size: 11px; }
+
+  /* DETAIL VIEW */
+  #detail-view { display: none; }
+  .back-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent); font-family: var(--mono);
+    font-size: 11px; padding: 6px 14px; cursor: pointer;
+    letter-spacing: 1px; margin-bottom: 22px;
+    transition: border-color 0.15s;
+  }
+  .back-btn:hover { border-color: var(--accent); }
+  .detail-header {
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px; margin-bottom: 24px;
+  }
+  .detail-flag { font-size: 36px; }
+  .detail-info { flex: 1; }
+  .detail-info h2 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .detail-info .bank { color: var(--dim); font-size: 12px; font-family: var(--sans); }
+  .detail-rate-box { text-align: right; }
+  .detail-rate { font-size: 32px; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
+  .detail-change { font-size: 13px; font-weight: 600; margin-top: 3px; }
+  #history-wrap { position: relative; height: 440px; }
+
+  /* TOOLTIP */
+  .custom-tooltip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* LEGEND */
+  .scatter-legend {
+    display: flex; gap: 20px; font-size: 10px; color: var(--dim);
+    padding: 0 0 4px 0;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">Swimming Pool · Global Policy Monitor</div>
+    <h1>Central Bank Policy Rates</h1>
+  </div>
+  <div class="header-meta">
+    <div id="today-date"></div>
+    <div class="warn">⚠ Illustrative data — connect to FRED API for live updates</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboard-view">
+
+    <!-- SCATTER CARD -->
+    <div class="card">
+      <div class="card-header">
+        <span>Rate Shift · Current vs. 3 Months Ago</span>
+        <span style="color:#1e3050">Points above diagonal = hiking &nbsp;|&nbsp; Below = cutting &nbsp;|&nbsp; On diagonal = unchanged</span>
+      </div>
+      <div class="card-body">
+        <div id="scatter-wrap"><canvas id="scatterChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card">
+      <div class="card-header">
+        <span>Central Bank Directory</span>
+        <span style="color:#1e3050">Click any row → 10-year history</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>Central Bank</th>
+            <th>Policy Rate</th>
+            <th>Δ 3 Months</th>
+            <th>Next Meeting</th>
+          </tr>
+        </thead>
+        <tbody id="rate-table-body"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /dashboard-view -->
+
+  <!-- DETAIL VIEW -->
+  <div id="detail-view">
+    <button class="back-btn" onclick="showDashboard()">← Back to Dashboard</button>
+    <div class="detail-header">
+      <div class="detail-flag" id="d-flag"></div>
+      <div class="detail-info">
+        <h2 id="d-name"></h2>
+        <div class="bank" id="d-bank"></div>
+      </div>
+      <div class="detail-rate-box">
+        <div class="detail-rate" id="d-rate"></div>
+        <div class="detail-change" id="d-change"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span>10-Year Policy Rate History · Jan 2016 – Mar 2026</span>
+        <span id="d-meeting" style="font-size:11px"></span>
+      </div>
+      <div class="card-body">
+        <div id="history-wrap"><canvas id="historyChart"></canvas></div>
+      </div>
+    </div>
+  </div><!-- /detail-view -->
+
+</div><!-- /main -->
+
+<script>
+// ─── TODAY ───────────────────────────────────────────────────────────
+const TODAY = new Date("2026-03-09");
+document.getElementById("today-date").textContent =
+  "Mar 9, 2026";
+
+const daysTo = s => {
+  if (!s) return Infinity;
+  return Math.ceil((new Date(s) - TODAY) / 86400000);
+};
+
+// ─── SERIES GENERATOR (step function) ────────────────────────────────
+function makeSeries(waypoints) {
+  const out = [];
+  let cur = new Date("2016-01-01");
+  const end = new Date("2026-03-01");
+  while (cur <= end) {
+    let r = waypoints[0][1];
+    for (const [d, v] of waypoints) if (cur >= new Date(d)) r = v;
+    out.push({
+      x: `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}`,
+      y: r
+    });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return out;
+}
+
+// ─── BANK DATA ────────────────────────────────────────────────────────
+const BANKS = [
+  {
+    code:"US", name:"United States", bank:"Federal Reserve", flag:"🇺🇸",
+    current:4.375, prev3m:4.375, nextMeeting:"2026-03-19", color:"#4FC3F7",
+    history: makeSeries([
+      ["2016-01-01",0.5],["2016-12-01",0.75],["2017-03-01",1.0],
+      ["2017-06-01",1.25],["2017-12-01",1.5],["2018-03-01",1.75],
+      ["2018-06-01",2.0],["2018-09-01",2.25],["2018-12-01",2.5],
+      ["2019-08-01",2.25],["2019-09-01",2.0],["2019-10-01",1.75],
+      ["2020-03-01",0.25],["2022-03-01",0.5],["2022-05-01",1.0],
+      ["2022-06-01",1.75],["2022-07-01",2.5],["2022-09-01",3.25],
+      ["2022-11-01",4.0],["2022-12-01",4.5],["2023-02-01",4.75],
+      ["2023-03-01",5.0],["2023-05-01",5.25],["2023-07-01",5.5],
+      ["2024-09-01",5.0],["2024-11-01",4.75],["2024-12-01",4.5],
+      ["2025-01-01",4.375]
+    ])
+  },
+  {
+    code:"EU", name:"Euro Area", bank:"ECB", flag:"🇪🇺",
+    current:2.65, prev3m:3.15, nextMeeting:"2026-04-17", color:"#81C784",
+    history: makeSeries([
+      ["2016-01-01",-0.3],["2016-03-01",-0.4],["2019-09-01",-0.5],
+      ["2022-07-01",0.0],["2022-09-01",0.75],["2022-11-01",1.5],
+      ["2023-02-01",2.5],["2023-06-01",3.5],["2023-09-01",4.0],
+      ["2024-06-01",3.75],["2024-09-01",3.5],["2024-12-01",3.0],
+      ["2025-01-01",2.75],["2025-03-01",2.5],["2025-06-01",2.25],
+      ["2025-10-01",2.65]
+    ])
+  },
+  {
+    code:"UK", name:"United Kingdom", bank:"Bank of England", flag:"🇬🇧",
+    current:4.5, prev3m:4.75, nextMeeting:"2026-03-20", color:"#CE93D8",
+    history: makeSeries([
+      ["2016-01-01",0.5],["2016-08-01",0.25],["2017-11-01",0.5],
+      ["2018-08-01",0.75],["2020-03-01",0.1],["2021-12-01",0.25],
+      ["2022-02-01",0.5],["2022-03-01",0.75],["2022-05-01",1.0],
+      ["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],
+      ["2022-11-01",3.0],["2022-12-01",3.5],["2023-02-01",4.0],
+      ["2023-03-01",4.25],["2023-05-01",4.5],["2023-06-01",5.0],
+      ["2023-08-01",5.25],["2024-08-01",5.0],["2024-11-01",4.75],
+      ["2025-02-01",4.5]
+    ])
+  },
+  {
+    code:"JP", name:"Japan", bank:"Bank of Japan", flag:"🇯🇵",
+    current:0.5, prev3m:0.5, nextMeeting:"2026-03-19", color:"#FFB74D",
+    history: makeSeries([
+      ["2016-01-01",0.1],["2016-02-01",-0.1],
+      ["2024-03-01",0.1],["2024-07-01",0.25],["2025-01-01",0.5]
+    ])
+  },
+  {
+    code:"CA", name:"Canada", bank:"Bank of Canada", flag:"🇨🇦",
+    current:3.0, prev3m:3.25, nextMeeting:"2026-03-12", color:"#F06292",
+    history: makeSeries([
+      ["2016-01-01",0.5],["2017-07-01",0.75],["2017-09-01",1.0],
+      ["2018-01-01",1.25],["2018-07-01",1.5],["2019-03-01",1.75],
+      ["2020-03-01",0.5],["2020-04-01",0.25],["2022-03-01",0.5],
+      ["2022-04-01",1.0],["2022-06-01",1.5],["2022-07-01",2.5],
+      ["2022-09-01",3.25],["2022-10-01",3.75],["2022-12-01",4.25],
+      ["2023-01-01",4.5],["2023-06-01",5.0],["2024-06-01",4.75],
+      ["2024-09-01",4.25],["2024-10-01",3.75],["2024-12-01",3.25],
+      ["2025-01-01",3.0]
+    ])
+  },
+  {
+    code:"AU", name:"Australia", bank:"Reserve Bank of Australia", flag:"🇦🇺",
+    current:4.1, prev3m:4.35, nextMeeting:"2026-04-07", color:"#4DB6AC",
+    history: makeSeries([
+      ["2016-01-01",2.0],["2016-05-01",1.75],["2016-08-01",1.5],
+      ["2019-06-01",1.25],["2019-07-01",1.0],["2019-10-01",0.75],
+      ["2020-03-01",0.5],["2020-11-01",0.1],["2022-05-01",0.85],
+      ["2022-06-01",1.35],["2022-07-01",1.85],["2022-08-01",2.35],
+      ["2022-09-01",2.85],["2022-10-01",2.6],["2022-11-01",2.85],
+      ["2022-12-01",3.1],["2023-02-01",3.35],["2023-03-01",3.6],
+      ["2023-05-01",3.85],["2023-06-01",4.1],["2023-11-01",4.35],
+      ["2025-02-01",4.1]
+    ])
+  },
+  {
+    code:"CH", name:"Switzerland", bank:"SNB", flag:"🇨🇭",
+    current:0.25, prev3m:0.5, nextMeeting:"2026-03-20", color:"#FF8A65",
+    history: makeSeries([
+      ["2016-01-01",-0.75],["2022-06-01",-0.25],["2022-09-01",0.5],
+      ["2022-12-01",1.0],["2023-03-01",1.5],["2023-06-01",1.75],
+      ["2024-03-01",1.5],["2024-06-01",1.25],["2024-09-01",1.0],
+      ["2024-12-01",0.5],["2025-03-01",0.25]
+    ])
+  },
+  {
+    code:"SE", name:"Sweden", bank:"Riksbank", flag:"🇸🇪",
+    current:2.25, prev3m:2.75, nextMeeting:"2026-03-14", color:"#AED581",
+    history: makeSeries([
+      ["2016-01-01",-0.35],["2019-01-01",-0.25],["2019-12-01",0.0],
+      ["2022-05-01",0.25],["2022-07-01",0.75],["2022-09-01",1.75],
+      ["2022-11-01",2.5],["2023-02-01",3.0],["2023-04-01",3.5],
+      ["2023-09-01",4.0],["2024-05-01",3.75],["2024-08-01",3.5],
+      ["2024-10-01",3.25],["2024-11-01",2.75],["2025-01-01",2.5],
+      ["2025-05-01",2.25]
+    ])
+  },
+  {
+    code:"NO", name:"Norway", bank:"Norges Bank", flag:"🇳🇴",
+    current:4.5, prev3m:4.5, nextMeeting:"2026-03-27", color:"#80DEEA",
+    history: makeSeries([
+      ["2016-01-01",0.75],["2016-03-01",0.5],["2018-09-01",0.75],
+      ["2019-09-01",1.5],["2020-03-01",0.5],["2020-05-01",0.0],
+      ["2021-09-01",0.25],["2021-12-01",0.5],["2022-03-01",0.75],
+      ["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],
+      ["2022-11-01",2.75],["2023-02-01",3.0],["2023-03-01",3.25],
+      ["2023-05-01",3.75],["2023-08-01",4.25],["2024-01-01",4.5]
+    ])
+  },
+  {
+    code:"NZ", name:"New Zealand", bank:"RBNZ", flag:"🇳🇿",
+    current:3.75, prev3m:4.25, nextMeeting:"2026-04-09", color:"#B39DDB",
+    history: makeSeries([
+      ["2016-01-01",2.5],["2016-03-01",2.25],["2016-08-01",2.0],
+      ["2019-05-01",1.5],["2019-08-01",1.0],["2020-03-01",0.25],
+      ["2021-10-01",0.5],["2022-02-01",1.0],["2022-04-01",1.5],
+      ["2022-05-01",2.0],["2022-07-01",2.5],["2022-08-01",3.0],
+      ["2022-10-01",3.5],["2022-11-01",4.25],["2023-02-01",4.75],
+      ["2023-04-01",5.25],["2023-07-01",5.5],["2024-08-01",5.25],
+      ["2024-10-01",4.75],["2024-11-01",4.25],["2025-02-01",3.75]
+    ])
+  },
+  {
+    code:"KR", name:"South Korea", bank:"Bank of Korea", flag:"🇰🇷",
+    current:2.75, prev3m:3.0, nextMeeting:"2026-04-17", color:"#F48FB1",
+    history: makeSeries([
+      ["2016-01-01",1.5],["2016-06-01",1.25],["2017-11-01",1.5],
+      ["2019-07-01",1.25],["2020-03-01",0.75],["2020-05-01",0.5],
+      ["2021-08-01",0.75],["2021-11-01",1.0],["2022-01-01",1.25],
+      ["2022-04-01",1.5],["2022-05-01",1.75],["2022-07-01",2.25],
+      ["2022-08-01",2.5],["2022-10-01",3.0],["2023-01-01",3.25],
+      ["2023-02-01",3.5],["2024-10-01",3.25],["2024-11-01",3.0],
+      ["2025-02-01",2.75]
+    ])
+  },
+  {
+    code:"CN", name:"China", bank:"People's Bank of China", flag:"🇨🇳",
+    current:3.1, prev3m:3.1, nextMeeting:null, color:"#FFD54F",
+    history: makeSeries([
+      ["2016-01-01",4.35],["2019-08-01",4.25],["2019-11-01",4.15],
+      ["2020-02-01",4.05],["2020-04-01",3.85],["2022-05-01",3.7],
+      ["2022-08-01",3.65],["2023-06-01",3.55],["2023-08-01",3.45],
+      ["2024-07-01",3.35],["2024-10-01",3.1]
+    ])
+  },
+];
+
+// ─── BUILD TABLE ──────────────────────────────────────────────────────
+const tbody = document.getElementById("rate-table-body");
+BANKS.forEach(b => {
+  const ch = +(b.current - b.prev3m).toFixed(3);
+  const days = daysTo(b.nextMeeting);
+  const urgent = days >= 0 && days <= 7;
+  const chClass = ch < 0 ? "ch-dn" : ch > 0 ? "ch-up" : "ch-flat";
+  const chText = ch === 0 ? "—" : `${ch > 0 ? "+" : ""}${ch.toFixed(2)}%`;
+
+  let meetingHtml;
+  if (!b.nextMeeting) {
+    meetingHtml = `<span class="no-schedule">Ad hoc</span>`;
+  } else if (urgent) {
+    meetingHtml = `<span class="meeting-badge urgent"><span class="pulse"></span>${b.nextMeeting} · ${days}d</span>`;
+  } else {
+    meetingHtml = `<span class="meeting-badge normal">${b.nextMeeting}</span>`;
+  }
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><div class="td-country">
+      <span class="flag">${b.flag}</span>
+      <span>
+        <span class="cname">${b.name}</span>
+        <span class="bname">${b.bank}</span>
+      </span>
+    </div></td>
+    <td style="color:var(--dim);font-size:11px">${b.bank}</td>
+    <td><span class="rate-val">${b.current.toFixed(2)}%</span></td>
+    <td class="${chClass}">${chText}</td>
+    <td>${meetingHtml}</td>
+  `;
+  tr.onclick = () => showDetail(b.code);
+  tbody.appendChild(tr);
+});
+
+// ─── SCATTER CHART ────────────────────────────────────────────────────
+const scatterData = BANKS.map(b => ({
+  x: b.prev3m, y: b.current,
+  label: b.code, color: b.color,
+  name: b.name, bank: b.bank
+}));
+
+// Diagonal reference line
+const diagMin = -1, diagMax = 6;
+const diagData = [{ x: diagMin, y: diagMin }, { x: diagMax, y: diagMax }];
+
+const scatterCtx = document.getElementById("scatterChart").getContext("2d");
+let scatterChart = new Chart(scatterCtx, {
+  type: "scatter",
+  data: {
+    datasets: [
+      {
+        label: "No Change Line",
+        data: diagData,
+        type: "line",
+        borderColor: "#1a3060",
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+      },
+      {
+        label: "Central Banks",
+        data: scatterData,
+        pointBackgroundColor: scatterData.map(d => d.color),
+        pointBorderColor: "#060c1c",
+        pointBorderWidth: 2,
+        pointRadius: 9,
+        pointHoverRadius: 12,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 600 },
+    scales: {
+      x: {
+        type: "linear",
+        min: -1, max: 6,
+        title: {
+          display: true,
+          text: "Rate 3 Months Ago (%)",
+          color: "#445870",
+          font: { family: "'IBM Plex Mono'", size: 11 }
+        },
+        ticks: {
+          color: "#445870",
+          font: { family: "'IBM Plex Mono'", size: 10 },
+          callback: v => `${v}%`
+        },
+        grid: { color: "#0d1a2e" },
+        border: { color: "#182840" }
+      },
+      y: {
+        type: "linear",
+        min: -1, max: 6,
+        title: {
+          display: true,
+          text: "Current Rate (%)",
+          color: "#445870",
+          font: { family: "'IBM Plex Mono'", size: 11 }
+        },
+        ticks: {
+          color: "#445870",
+          font: { family: "'IBM Plex Mono'", size: 10 },
+          callback: v => `${v}%`
+        },
+        grid: { color: "#0d1a2e" },
+        border: { color: "#182840" }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0c1526",
+        borderColor: "#182840",
+        borderWidth: 1,
+        titleFont: { family: "'IBM Plex Mono'", size: 12 },
+        bodyFont: { family: "'IBM Plex Mono'", size: 11 },
+        callbacks: {
+          title: items => {
+            const d = items[0].raw;
+            return d.name || "";
+          },
+          label: item => {
+            const d = item.raw;
+            if (!d.name) return "";
+            const ch = +(d.y - d.x).toFixed(3);
+            return [
+              `${d.bank}`,
+              `Current: ${d.y.toFixed(2)}%`,
+              `3mo ago: ${d.x.toFixed(2)}%`,
+              `Change:  ${ch >= 0 ? "+" : ""}${ch.toFixed(2)}%`
+            ];
+          }
+        }
+      }
+    },
+    // Draw country code labels on points
+  },
+  plugins: [{
+    id: "labels",
+    afterDatasetsDraw(chart) {
+      const ctx = chart.ctx;
+      const ds = chart.data.datasets[1];
+      const meta = chart.getDatasetMeta(1);
+      meta.data.forEach((point, i) => {
+        const d = ds.data[i];
+        if (!d.label) return;
+        ctx.save();
+        ctx.font = "600 10px 'IBM Plex Mono'";
+        ctx.fillStyle = "#c0cce0";
+        ctx.textAlign = "left";
+        ctx.fillText(d.label, point.x + 12, point.y - 6);
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// ─── HISTORY CHART instance ───────────────────────────────────────────
+let historyChartInstance = null;
+
+// ─── DETAIL VIEW ──────────────────────────────────────────────────────
+function showDetail(code) {
+  const b = BANKS.find(x => x.code === code);
+  if (!b) return;
+
+  // Fill header
+  document.getElementById("d-flag").textContent = b.flag;
+  document.getElementById("d-name").textContent = b.name;
+  document.getElementById("d-bank").textContent = b.bank;
+  document.getElementById("d-rate").textContent = `${b.current.toFixed(2)}%`;
+
+  const ch = +(b.current - b.prev3m).toFixed(3);
+  const chEl = document.getElementById("d-change");
+  chEl.textContent = ch === 0 ? "Unchanged vs 3mo ago" : `${ch > 0 ? "+" : ""}${ch.toFixed(2)}% vs 3mo ago`;
+  chEl.style.color = ch < 0 ? "var(--green)" : ch > 0 ? "var(--red)" : "var(--dim)";
+
+  // Meeting badge
+  const meetEl = document.getElementById("d-meeting");
+  if (b.nextMeeting) {
+    const days = daysTo(b.nextMeeting);
+    const urgent = days >= 0 && days <= 7;
+    meetEl.style.color = urgent ? "var(--warn)" : "var(--dim)";
+    meetEl.textContent = `Next meeting: ${b.nextMeeting}${urgent ? ` · ⚠ ${days}d away` : ""}`;
+  } else {
+    meetEl.textContent = "No fixed schedule";
+    meetEl.style.color = "var(--dim)";
+  }
+
+  // Destroy previous chart
+  if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
+
+  // Build history chart
+  const labels = b.history.map(d => d.x);
+  const values = b.history.map(d => d.y);
+
+  // Show only Jan labels for X axis
+  const tickLabels = labels.map(l => l.endsWith("-01") ? l.slice(0, 4) : "");
+
+  const hCtx = document.getElementById("historyChart").getContext("2d");
+  historyChartInstance = new Chart(hCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: b.color,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: b.color,
+        pointHoverBorderColor: "#060c1c",
+        pointHoverBorderWidth: 2,
+        tension: 0,
+        stepped: true,
+        fill: {
+          target: "origin",
+          above: b.color + "14",
+          below: b.color + "14"
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: {
+          ticks: {
+            color: "#445870",
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            maxRotation: 45,
+            callback: (val, idx) => tickLabels[idx] || null,
+            autoSkip: false,
+          },
+          grid: { color: "#0d1a2e" },
+          border: { color: "#182840" }
+        },
+        y: {
+          ticks: {
+            color: "#445870",
+            font: { family: "'IBM Plex Mono'", size: 10 },
+            callback: v => `${v}%`
+          },
+          grid: { color: "#0d1a2e" },
+          border: { color: "#182840" }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#0c1526",
+          borderColor: "#182840",
+          borderWidth: 1,
+          titleFont: { family: "'IBM Plex Mono'", size: 11 },
+          bodyFont: { family: "'IBM Plex Mono'", size: 13, weight: "700" },
+          callbacks: {
+            title: items => items[0].label,
+            label: item => `  Rate: ${item.raw.toFixed(2)}%`
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: "zeroline",
+      afterDraw(chart) {
+        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+        if (y.min >= 0) return;
+        const yZero = y.getPixelForValue(0);
+        ctx.save();
+        ctx.strokeStyle = "#1e3050";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(left, yZero);
+        ctx.lineTo(right, yZero);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Switch views
+  document.getElementById("dashboard-view").style.display = "none";
+  document.getElementById("detail-view").style.display = "block";
+  window.scrollTo(0, 0);
+}
+
+function showDashboard() {
+  document.getElementById("detail-view").style.display = "none";
+  document.getElementById("dashboard-view").style.display = "block";
+  if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
+}
+</script>
+</body>
+</html>
