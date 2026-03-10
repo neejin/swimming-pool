@@ -1,5 +1,6 @@
 """
 fetch_rates.py — BIS bulk CSV + FRED → data/rates.json
+BIS WS_CBPOL은 일별(D) 데이터로 저장됨 → 월별로 집계
 """
 import json, os, io, zipfile, csv, requests
 from datetime import datetime, timezone, timedelta
@@ -19,7 +20,7 @@ def fetch_bis_csv():
     print(f"[BIS] GET {url}")
     try:
         r = requests.get(url, timeout=90)
-        print(f"[BIS] HTTP {r.status_code}, size={len(r.content)} bytes")
+        print(f"[BIS] HTTP {r.status_code}, size={len(r.content):,} bytes")
         r.raise_for_status()
     except Exception as e:
         print(f"[BIS] Download error: {e}")
@@ -27,11 +28,10 @@ def fetch_bis_csv():
 
     try:
         z        = zipfile.ZipFile(io.BytesIO(r.content))
-        names    = z.namelist()
-        print(f"[BIS] ZIP contents: {names}")
-        csv_name = next((n for n in names if n.endswith(".csv")), None)
+        csv_name = next((n for n in z.namelist() if n.endswith(".csv")), None)
+        print(f"[BIS] ZIP contents: {z.namelist()}")
         if not csv_name:
-            print("[BIS] No CSV found in ZIP")
+            print("[BIS] No CSV in ZIP")
             return {}
         raw = z.read(csv_name).decode("utf-8")
     except Exception as e:
@@ -39,33 +39,32 @@ def fetch_bis_csv():
         return {}
 
     reader = csv.DictReader(io.StringIO(raw))
-    # Print actual column names for debugging
-    print(f"[BIS] CSV columns: {reader.fieldnames}")
+    print(f"[BIS] Columns: {reader.fieldnames}")
 
-    # Print first 3 rows to understand format
-    rows_seen = 0
-    by_code   = {}
+    # key: dash_code → { "YYYY-MM": last_value_in_month }
+    by_code = {}
+    rows_printed = 0
 
     for row in reader:
-        if rows_seen < 3:
-            print(f"[BIS] Sample row {rows_seen}: {dict(row)}")
-            rows_seen += 1
+        # 컬럼명 대소문자 무관하게 처리
+        row_lower = {k.strip().upper(): v.strip() for k, v in row.items()}
 
-        # Handle both upper and lowercase column names
-        freq     = (row.get("FREQ") or row.get("freq") or "").strip()
-        ref_area = (row.get("REF_AREA") or row.get("ref_area") or "").strip()
-        time_str = (row.get("TIME_PERIOD") or row.get("time_period") or row.get("date") or "").strip()
-        val_str  = (row.get("OBS_VALUE") or row.get("obs_value") or row.get("value") or "").strip()
+        ref_area = row_lower.get("REF_AREA", "")
+        time_str = row_lower.get("TIME_PERIOD", "")
+        val_str  = row_lower.get("OBS_VALUE", "")
+        freq     = row_lower.get("FREQ", "")
 
-        if rows_seen <= 3:
-            rows_seen += 1
+        if rows_printed < 3:
+            print(f"[BIS] Sample: FREQ={freq} REF_AREA={ref_area} TIME={time_str} VAL={val_str}")
+            rows_printed += 1
 
-        # Accept monthly (M) rows; BIS daily series summarised to monthly by last value
-        if freq not in ("M", "m", ""):
-            continue
+        # 값 없으면 스킵
         if not val_str or not time_str:
             continue
-        if time_str < START:
+
+        # 날짜가 START 이전이면 스킵
+        ym = time_str[:7]   # "2024-03" 또는 "2024-03-15" → "2024-03"
+        if ym < START:
             continue
 
         dash_code = BIS_TO_DASH.get(ref_area)
@@ -77,7 +76,7 @@ def fetch_bis_csv():
         except ValueError:
             continue
 
-        ym = time_str[:7]
+        # 월별로 마지막 값 유지 (일별 데이터면 월말 값이 남음)
         if dash_code not in by_code:
             by_code[dash_code] = {}
         by_code[dash_code][ym] = val
@@ -89,7 +88,7 @@ def fetch_bis_csv():
             result[code] = series
             print(f"[BIS] {code}: {len(series)} months, latest={series[-1]}")
 
-    print(f"[BIS] Total countries parsed: {sorted(result.keys())}")
+    print(f"[BIS] Countries parsed: {sorted(result.keys())}")
     return result
 
 
@@ -124,26 +123,33 @@ def extract_stats(series):
     prev3m  = cands[-1]["y"] if cands else series[0]["y"]
     lcd, lc = None, 0
     for i in range(len(series)-1, 0, -1):
-        diff = round((series[i]["y"] - series[i-1]["y"]) * 100)
-        if abs(diff) >= 1:
-            lcd, lc = series[i]["x"]+"-01", diff
+        diff = (series[i]["y"] - series[i-1]["y"]) * 100
+        # 중앙은행은 보통 25bp 단위로 금리 변경 → 10bp 이상 변화만 인식, 25bp 단위로 반올림
+        if abs(diff) >= 10:
+            rounded = round(diff / 25) * 25
+            if rounded == 0:
+                rounded = round(diff / 5) * 5  # 작은 경우 5bp 단위
+            lcd, lc = series[i]["x"]+"-01", int(rounded)
             break
     return {"current":current,"prev3m":prev3m,"lastChangeDate":lcd,"lastChangeBps":lc}
 
 
 def main():
     os.makedirs("data", exist_ok=True)
+
+    # BIS로 전체 수집
     data = fetch_bis_csv()
 
+    # FRED로 US/EU/CA 덮어쓰기 (더 정확한 월평균값)
     if FRED_API_KEY:
-        print("\n[FRED] Supplementing US, EU, CA, UK...")
+        print("\n[FRED] Supplementing US, EU, CA...")
         for code, sid in FRED_SERIES.items():
             s = fetch_fred(sid)
             if s:
                 data[code] = s
                 print(f"[FRED] {code}: {len(s)} months, latest={s[-1]}")
     else:
-        print("[FRED] No API key set")
+        print("[FRED] No API key")
 
     out = {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "rates":{}}
     for code, series in data.items():
