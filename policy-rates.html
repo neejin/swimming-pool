@@ -170,8 +170,6 @@
 </div>
 
 <script>
-// !! REPLACE WITH YOUR NEW FRED API KEY !!
-const FRED_API_KEY = "6807c10e4be7829c1f0f8de75e890fd1";
 
 const MONO  = "'IBM Plex Mono'";
 const TODAY = new Date();
@@ -192,45 +190,7 @@ function fmtDate(s){
 }
 
 
-// ── Fetch FRED via allorigins proxy (bypasses CORS) ──────────────────
-async function fetchFredJsonp(seriesId) {
-  const fredUrl = `https://api.stlouisfed.org/fred/series/observations`
-    + `?series_id=${seriesId}`
-    + `&api_key=${FRED_API_KEY}`
-    + `&file_type=json`
-    + `&observation_start=2016-01-01`
-    + `&frequency=m`
-    + `&sort_order=asc`;
 
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(fredUrl)}`;
-  const res = await fetch(proxyUrl);
-  if (!res.ok) throw new Error(`Proxy error ${res.status}: ${seriesId}`);
-  const wrapper = await res.json();
-  const data = JSON.parse(wrapper.contents);
-  if (data.error_message) throw new Error(data.error_message);
-  return (data.observations || [])
-    .filter(o => o.value !== ".")
-    .map(o => ({ x: o.date.slice(0,7), y: parseFloat(o.value) }));
-}
-
-// ── Stats extraction from series ─────────────────────────────────────
-function extractStats(series) {
-  if (!series || !series.length) return null;
-  const current = series[series.length-1].y;
-
-  const d3m = new Date();
-  d3m.setMonth(d3m.getMonth()-3);
-  const d3mStr = `${d3m.getFullYear()}-${String(d3m.getMonth()+1).padStart(2,"0")}`;
-  const prev3mEntry = [...series].reverse().find(d => d.x <= d3mStr);
-  const prev3m = prev3mEntry ? prev3mEntry.y : series[0].y;
-
-  let lastChangeDate = null, lastChangeBps = 0;
-  for (let i = series.length-1; i > 0; i--) {
-    const diff = Math.round((series[i].y - series[i-1].y) * 100);
-    if (Math.abs(diff) >= 1) { lastChangeDate = series[i].x+"-01"; lastChangeBps = diff; break; }
-  }
-  return { current, prev3m, lastChangeDate, lastChangeBps };
-}
 
 function fmtRateDisplay(bank, current) {
   if (bank.code === "US") return `${(current-0.125).toFixed(2)}% – ${(current+0.125).toFixed(2)}%`;
@@ -259,34 +219,34 @@ const BANKS = [
   { code:"EU", name:"Euro Area",      bank:"ECB",                      flag:"🇪🇺", color:"#81C784", rating:"AAA",  nextMeeting:"2026-04-17", fredId:"ECBDFR",
     current:2.65, prev3m:3.15, rateDisplay:"2.65%", lastChange:{date:"2025-10-23",bps:-25},
     history:makeSeries([["2016-01-01",-0.3],["2016-03-01",-0.4],["2019-09-01",-0.5],["2022-07-01",0.0],["2022-09-01",0.75],["2022-11-01",1.5],["2023-02-01",2.5],["2023-06-01",3.5],["2023-09-01",4.0],["2024-06-01",3.75],["2024-09-01",3.5],["2024-12-01",3.0],["2025-01-01",2.75],["2025-03-01",2.5],["2025-06-01",2.25],["2025-10-01",2.65]])},
-  { code:"UK", name:"United Kingdom", bank:"Bank of England",          flag:"🇬🇧", color:"#CE93D8", rating:"AA",   nextMeeting:"2026-05-08", fredId:"BOERUKM",
+  { code:"UK", name:"United Kingdom", bank:"Bank of England",          flag:"🇬🇧", color:"#CE93D8", rating:"AA",   nextMeeting:"2026-05-08", fredId:"IUDSOIA",
     current:4.5, prev3m:4.75, rateDisplay:"4.50%", lastChange:{date:"2025-02-06",bps:-25},
     history:makeSeries([["2016-01-01",0.5],["2016-08-01",0.25],["2017-11-01",0.5],["2018-08-01",0.75],["2020-03-01",0.1],["2021-12-01",0.25],["2022-02-01",0.5],["2022-03-01",0.75],["2022-05-01",1.0],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",3.0],["2022-12-01",3.5],["2023-02-01",4.0],["2023-03-01",4.25],["2023-05-01",4.5],["2023-06-01",5.0],["2023-08-01",5.25],["2024-08-01",5.0],["2024-11-01",4.75],["2025-02-01",4.5]])},
-  { code:"JP", name:"Japan",          bank:"Bank of Japan",            flag:"🇯🇵", color:"#FFB74D", rating:"A+",   nextMeeting:"2026-04-30", fredId:"IRSTJPRESM",
-    current:0.5, prev3m:0.5, rateDisplay:"0.50%", lastChange:{date:"2025-01-24",bps:+25},
+  { code:"JP", name:"Japan",          bank:"Bank of Japan",            flag:"🇯🇵", color:"#FFB74D", rating:"A+",   nextMeeting:"2026-04-30", fredId:null,
+    current:0.75, prev3m:0.5, rateDisplay:"0.75%", lastChange:{date:"2025-12-19",bps:+25},
     history:makeSeries([["2016-01-01",0.1],["2016-02-01",-0.1],["2024-03-01",0.1],["2024-07-01",0.25],["2025-01-01",0.5]])},
   { code:"CA", name:"Canada",         bank:"Bank of Canada",           flag:"🇨🇦", color:"#F06292", rating:"AAA",  nextMeeting:"2026-04-16", fredId:"IRSTCB01CAM156N",
     current:3.0, prev3m:3.25, rateDisplay:"3.00%", lastChange:{date:"2025-01-29",bps:-25},
     history:makeSeries([["2016-01-01",0.5],["2017-07-01",0.75],["2017-09-01",1.0],["2018-01-01",1.25],["2018-07-01",1.5],["2019-03-01",1.75],["2020-03-01",0.5],["2020-04-01",0.25],["2022-03-01",0.5],["2022-04-01",1.0],["2022-06-01",1.5],["2022-07-01",2.5],["2022-09-01",3.25],["2022-10-01",3.75],["2022-12-01",4.25],["2023-01-01",4.5],["2023-06-01",5.0],["2024-06-01",4.75],["2024-09-01",4.25],["2024-10-01",3.75],["2024-12-01",3.25],["2025-01-01",3.0]])},
-  { code:"AU", name:"Australia",      bank:"Reserve Bank of Australia",flag:"🇦🇺", color:"#4DB6AC", rating:"AAA",  nextMeeting:"2026-05-20", fredId:"RBATCTR",
-    current:4.1, prev3m:4.35, rateDisplay:"4.10%", lastChange:{date:"2025-02-18",bps:-25},
+  { code:"AU", name:"Australia",      bank:"Reserve Bank of Australia",flag:"🇦🇺", color:"#4DB6AC", rating:"AAA",  nextMeeting:"2026-05-20", fredId:null,
+    current:3.85, prev3m:3.6, rateDisplay:"3.85%", lastChange:{date:"2026-02-03",bps:+25},
     history:makeSeries([["2016-01-01",2.0],["2016-05-01",1.75],["2016-08-01",1.5],["2019-06-01",1.25],["2019-07-01",1.0],["2019-10-01",0.75],["2020-03-01",0.5],["2020-11-01",0.1],["2022-05-01",0.85],["2022-06-01",1.35],["2022-07-01",1.85],["2022-08-01",2.35],["2022-09-01",2.85],["2022-10-01",2.6],["2022-11-01",2.85],["2022-12-01",3.1],["2023-02-01",3.35],["2023-03-01",3.6],["2023-05-01",3.85],["2023-06-01",4.1],["2023-11-01",4.35],["2025-02-01",4.1]])},
-  { code:"CH", name:"Switzerland",    bank:"SNB",                      flag:"🇨🇭", color:"#FF8A65", rating:"AAA",  nextMeeting:"2026-06-18", fredId:"IRSTCH01STM156N",
-    current:0.25, prev3m:0.5, rateDisplay:"0.25%", lastChange:{date:"2025-03-20",bps:-25},
+  { code:"CH", name:"Switzerland",    bank:"SNB",                      flag:"🇨🇭", color:"#FF8A65", rating:"AAA",  nextMeeting:"2026-06-18", fredId:null,
+    current:0.0, prev3m:0.0, rateDisplay:"0.00%", lastChange:{date:"2025-06-19",bps:-25},
     history:makeSeries([["2016-01-01",-0.75],["2022-06-01",-0.25],["2022-09-01",0.5],["2022-12-01",1.0],["2023-03-01",1.5],["2023-06-01",1.75],["2024-03-01",1.5],["2024-06-01",1.25],["2024-09-01",1.0],["2024-12-01",0.5],["2025-03-01",0.25]])},
-  { code:"SE", name:"Sweden",         bank:"Riksbank",                 flag:"🇸🇪", color:"#AED581", rating:"AAA",  nextMeeting:"2026-04-29", fredId:"IRSTSE01STM156N",
-    current:2.25, prev3m:2.75, rateDisplay:"2.25%", lastChange:{date:"2025-05-07",bps:-25},
+  { code:"SE", name:"Sweden",         bank:"Riksbank",                 flag:"🇸🇪", color:"#AED581", rating:"AAA",  nextMeeting:"2026-04-29", fredId:null,
+    current:1.75, prev3m:1.75, rateDisplay:"1.75%", lastChange:{date:"2025-11-06",bps:-25},
     history:makeSeries([["2016-01-01",-0.35],["2019-01-01",-0.25],["2019-12-01",0.0],["2022-05-01",0.25],["2022-07-01",0.75],["2022-09-01",1.75],["2022-11-01",2.5],["2023-02-01",3.0],["2023-04-01",3.5],["2023-09-01",4.0],["2024-05-01",3.75],["2024-08-01",3.5],["2024-10-01",3.25],["2024-11-01",2.75],["2025-01-01",2.5],["2025-05-01",2.25]])},
-  { code:"NO", name:"Norway",         bank:"Norges Bank",              flag:"🇳🇴", color:"#80DEEA", rating:"AAA",  nextMeeting:"2026-03-27", fredId:"IRSTNO01STM156N",
-    current:4.5, prev3m:4.5, rateDisplay:"4.50%", lastChange:{date:"2024-01-25",bps:+25},
+  { code:"NO", name:"Norway",         bank:"Norges Bank",              flag:"🇳🇴", color:"#80DEEA", rating:"AAA",  nextMeeting:"2026-03-27", fredId:null,
+    current:4.0, prev3m:4.0, rateDisplay:"4.00%", lastChange:{date:"2025-09-18",bps:-25},
     history:makeSeries([["2016-01-01",0.75],["2016-03-01",0.5],["2018-09-01",0.75],["2019-09-01",1.5],["2020-03-01",0.5],["2020-05-01",0.0],["2021-09-01",0.25],["2021-12-01",0.5],["2022-03-01",0.75],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",2.75],["2023-02-01",3.0],["2023-03-01",3.25],["2023-05-01",3.75],["2023-08-01",4.25],["2024-01-01",4.5]])},
-  { code:"NZ", name:"New Zealand",    bank:"RBNZ",                     flag:"🇳🇿", color:"#B39DDB", rating:"AA+",  nextMeeting:"2026-04-09", fredId:"IRSTNZ01STM156N",
-    current:3.75, prev3m:4.25, rateDisplay:"3.75%", lastChange:{date:"2025-02-19",bps:-50},
+  { code:"NZ", name:"New Zealand",    bank:"RBNZ",                     flag:"🇳🇿", color:"#B39DDB", rating:"AA+",  nextMeeting:"2026-04-09", fredId:null,
+    current:2.25, prev3m:2.5, rateDisplay:"2.25%", lastChange:{date:"2025-11-26",bps:-25},
     history:makeSeries([["2016-01-01",2.5],["2016-03-01",2.25],["2016-08-01",2.0],["2019-05-01",1.5],["2019-08-01",1.0],["2020-03-01",0.25],["2021-10-01",0.5],["2022-02-01",1.0],["2022-04-01",1.5],["2022-05-01",2.0],["2022-07-01",2.5],["2022-08-01",3.0],["2022-10-01",3.5],["2022-11-01",4.25],["2023-02-01",4.75],["2023-04-01",5.25],["2023-07-01",5.5],["2024-08-01",5.25],["2024-10-01",4.75],["2024-11-01",4.25],["2025-02-01",3.75]])},
-  { code:"KR", name:"South Korea",    bank:"Bank of Korea",            flag:"🇰🇷", color:"#F48FB1", rating:"AA",   nextMeeting:"2026-04-17", fredId:"IRSTKR01STM156N",
-    current:2.75, prev3m:3.0, rateDisplay:"2.75%", lastChange:{date:"2025-02-25",bps:-25},
+  { code:"KR", name:"South Korea",    bank:"Bank of Korea",            flag:"🇰🇷", color:"#F48FB1", rating:"AA",   nextMeeting:"2026-04-17", fredId:null,
+    current:2.5, prev3m:2.75, rateDisplay:"2.50%", lastChange:{date:"2025-05-29",bps:-25},
     history:makeSeries([["2016-01-01",1.5],["2016-06-01",1.25],["2017-11-01",1.5],["2019-07-01",1.25],["2020-03-01",0.75],["2020-05-01",0.5],["2021-08-01",0.75],["2021-11-01",1.0],["2022-01-01",1.25],["2022-04-01",1.5],["2022-05-01",1.75],["2022-07-01",2.25],["2022-08-01",2.5],["2022-10-01",3.0],["2023-01-01",3.25],["2023-02-01",3.5],["2024-10-01",3.25],["2024-11-01",3.0],["2025-02-01",2.75]])},
-  { code:"CN", name:"China",          bank:"People's Bank of China",   flag:"🇨🇳", color:"#FFD54F", rating:"A+",   nextMeeting:null,          fredId:"IRSTCN01STM156N",
+  { code:"CN", name:"China",          bank:"People's Bank of China",   flag:"🇨🇳", color:"#FFD54F", rating:"A+",   nextMeeting:null,          fredId:null,
     current:3.1, prev3m:3.1, rateDisplay:"3.10%", lastChange:{date:"2024-10-21",bps:-25},
     history:makeSeries([["2016-01-01",4.35],["2019-08-01",4.25],["2019-11-01",4.15],["2020-02-01",4.05],["2020-04-01",3.85],["2022-05-01",3.7],["2022-08-01",3.65],["2023-06-01",3.55],["2023-08-01",3.45],["2024-07-01",3.35],["2024-10-01",3.1]])},
   // Static EM
@@ -408,51 +368,57 @@ async function init() {
   document.getElementById("header-date").textContent =
     TODAY.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 
-  const fredBanks   = BANKS.filter(b=>b.fredId);
-  const staticBanks = BANKS.filter(b=>!b.fredId);
-  let liveCount=0, errCount=0;
+  let liveCount = 0;
 
-  const results = await Promise.allSettled(fredBanks.map(b=>fetchFredJsonp(b.fredId)));
-  results.forEach((res,i)=>{
-    const bank=fredBanks[i];
-    if(res.status==="fulfilled"&&res.value.length>0){
-      const stats=extractStats(res.value);
-      if(stats){
-        bank.history     = res.value;
-        bank.current     = stats.current;
-        bank.prev3m      = stats.prev3m;
-        bank.rateDisplay = fmtRateDisplay(bank,stats.current);
-        if(stats.lastChangeDate) bank.lastChange={date:stats.lastChangeDate,bps:stats.lastChangeBps};
-        bank.isLive=true; liveCount++;
+  try {
+    const res = await fetch("data/rates.json");
+    if (!res.ok) throw new Error("rates.json not found");
+    const json = await res.json();
+
+    // Merge live data into BANKS
+    for (const bank of BANKS) {
+      const live = json.rates[bank.code];
+      if (!live || !live.series || live.series.length === 0) continue;
+      bank.history     = live.series;
+      bank.current     = live.current;
+      bank.prev3m      = live.prev3m;
+      bank.rateDisplay = fmtRateDisplay(bank, live.current);
+      if (live.lastChangeDate) {
+        bank.lastChange = { date: live.lastChangeDate, bps: live.lastChangeBps };
       }
-    } else {
-      console.warn(`FRED failed ${bank.code}:`,res.reason?.message);
-      bank.isLive=false; errCount++;
+      bank.isLive = true;
+      liveCount++;
     }
-  });
-  staticBanks.forEach(b=>b.isLive=false);
 
-  const dot=document.getElementById("status-dot"), txt=document.getElementById("status-text");
-  const src=document.getElementById("header-source");
-  if(liveCount>0&&errCount===0){
-    dot.className="status-dot live";
-    txt.textContent=`Live · ${liveCount} series from FRED API · ${staticBanks.length} static · ${TODAY.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}`;
-    src.textContent=`${liveCount} live via FRED`;
-    src.className="";
-    src.style.color="var(--green)";
-  } else if(liveCount>0){
-    dot.className="status-dot live";
-    txt.textContent=`Partial · ${liveCount} live · ${errCount} failed · ${staticBanks.length} static`;
-    src.textContent="Partial live data"; src.style.color="var(--warn)";
-  } else {
-    dot.className="status-dot error";
-    txt.textContent="FRED fetch failed — check API key · showing static fallback";
-    src.textContent="⚠ Static only"; src.className="warn-text";
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    const src = document.getElementById("header-source");
+    const staticCount = BANKS.length - liveCount;
+
+    if (liveCount > 0) {
+      dot.className = "status-dot live";
+      const updated = json.updated
+        ? new Date(json.updated).toLocaleString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"})
+        : "today";
+      txt.textContent = `Live · ${liveCount} countries · ${staticCount} static · Data as of ${updated}`;
+      src.textContent = `Auto-updated daily via BIS + FRED`;
+      src.style.color = "var(--green)";
+    } else {
+      throw new Error("No live data in rates.json");
+    }
+  } catch(e) {
+    console.warn("Could not load rates.json:", e.message);
+    BANKS.forEach(b => b.isLive = false);
+    const dot = document.getElementById("status-dot");
+    const txt = document.getElementById("status-text");
+    dot.className = "status-dot error";
+    txt.textContent = "⚠ rates.json not found — run GitHub Action first, or showing static fallback";
   }
 
-  document.getElementById("scatter-loading").style.display="none";
-  document.getElementById("rating-loading").style.display="none";
-  renderCharts(); renderTable();
+  document.getElementById("scatter-loading").style.display = "none";
+  document.getElementById("rating-loading").style.display  = "none";
+  renderCharts();
+  renderTable();
 }
 
 // ── Detail view ───────────────────────────────────────────────────────
