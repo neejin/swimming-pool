@@ -80,7 +80,7 @@ def fetch_bis_csv():
     return result
 
 
-FRED_SERIES = {"US":"FEDFUNDS","EU":"ECBDFR","CA":"IRSTCB01CAM156N"}
+FRED_SERIES = {"US":"FEDFUNDS","EU":"ECBDFR"}
 
 def fetch_fred(series_id):
     if not FRED_API_KEY:
