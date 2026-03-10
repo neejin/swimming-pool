@@ -47,12 +47,17 @@ def fetch_bis_csv():
 
     for row in reader:
         # 컬럼명 대소문자 무관하게 처리
+        # 컬럼명이 "FREQ:Frequency" 형태 → ':' 앞부분만 추출
         row_lower = {k.strip().split(":")[0].upper(): v.strip() for k, v in row.items()}
 
-        ref_area = row_lower.get("REF_AREA", "")
-        time_str = row_lower.get("TIME_PERIOD", "")
-        val_str  = row_lower.get("OBS_VALUE", "")
-        freq     = row_lower.get("FREQ", "")
+        # 값도 "HR: Croatia" 형태 → ':' 앞부분만 추출
+        def code_only(s):
+            return s.split(":")[0].strip() if s else ""
+
+        ref_area = code_only(row_lower.get("REF_AREA", ""))
+        time_str = row_lower.get("TIME_PERIOD", "").strip()
+        val_str  = row_lower.get("OBS_VALUE", "").strip()
+        freq     = code_only(row_lower.get("FREQ", ""))
 
         if rows_printed < 3:
             print(f"[BIS] Sample: FREQ={freq} REF_AREA={ref_area} TIME={time_str} VAL={val_str}")
