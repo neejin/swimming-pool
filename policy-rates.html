@@ -141,7 +141,6 @@
           <th>Country / Central Bank</th>
           <th>Policy Rate</th>
           <th>Last Rate Change</th>
-          <th>Δ 3 Months</th>
           <th>S&amp;P Rating</th>
           <th>Next Meeting</th>
         </tr></thead>
@@ -213,31 +212,31 @@ function makeSeries(wps) {
 
 // ── Bank data ─────────────────────────────────────────────────────────
 const BANKS = [
-  { code:"US", name:"United States",  bank:"Federal Reserve",          flag:"🇺🇸", color:"#4FC3F7", rating:"AA+",  nextMeeting:"2026-05-07", fredId:"FEDFUNDS",
+  { code:"US", name:"United States",  bank:"Federal Reserve",          flag:"🇺🇸", color:"#4FC3F7", rating:"AA+",  nextMeeting:"2026-03-18", fredId:"FEDFUNDS",
     current:4.375, prev3m:4.375, rateDisplay:"4.25% – 4.50%", lastChange:{date:"2024-12-18",bps:-25},
     history:makeSeries([["2016-01-01",0.5],["2016-12-01",0.75],["2017-03-01",1.0],["2017-06-01",1.25],["2017-12-01",1.5],["2018-03-01",1.75],["2018-06-01",2.0],["2018-09-01",2.25],["2018-12-01",2.5],["2019-08-01",2.25],["2019-09-01",2.0],["2019-10-01",1.75],["2020-03-01",0.25],["2022-03-01",0.5],["2022-05-01",1.0],["2022-06-01",1.75],["2022-07-01",2.5],["2022-09-01",3.25],["2022-11-01",4.0],["2022-12-01",4.5],["2023-02-01",4.75],["2023-03-01",5.0],["2023-05-01",5.25],["2023-07-01",5.5],["2024-09-01",5.0],["2024-11-01",4.75],["2024-12-01",4.5],["2025-01-01",4.375]])},
-  { code:"EU", name:"Euro Area",      bank:"ECB",                      flag:"🇪🇺", color:"#81C784", rating:"AAA",  nextMeeting:"2026-04-17", fredId:"ECBDFR",
+  { code:"EU", name:"Euro Area",      bank:"ECB (Deposit Facility Rate)",                      flag:"🇪🇺", color:"#81C784", rating:"AAA",  nextMeeting:"2026-03-19", fredId:"ECBDFR",
     current:2.65, prev3m:3.15, rateDisplay:"2.65%", lastChange:{date:"2025-10-23",bps:-25},
     history:makeSeries([["2016-01-01",-0.3],["2016-03-01",-0.4],["2019-09-01",-0.5],["2022-07-01",0.0],["2022-09-01",0.75],["2022-11-01",1.5],["2023-02-01",2.5],["2023-06-01",3.5],["2023-09-01",4.0],["2024-06-01",3.75],["2024-09-01",3.5],["2024-12-01",3.0],["2025-01-01",2.75],["2025-03-01",2.5],["2025-06-01",2.25],["2025-10-01",2.65]])},
-  { code:"UK", name:"United Kingdom", bank:"Bank of England",          flag:"🇬🇧", color:"#CE93D8", rating:"AA",   nextMeeting:"2026-05-08", fredId:"IUDSOIA",
+  { code:"UK", name:"United Kingdom", bank:"Bank of England",          flag:"🇬🇧", color:"#CE93D8", rating:"AA",   nextMeeting:"2026-03-19", fredId:"IUDSOIA",
     current:4.5, prev3m:4.75, rateDisplay:"4.50%", lastChange:{date:"2025-02-06",bps:-25},
     history:makeSeries([["2016-01-01",0.5],["2016-08-01",0.25],["2017-11-01",0.5],["2018-08-01",0.75],["2020-03-01",0.1],["2021-12-01",0.25],["2022-02-01",0.5],["2022-03-01",0.75],["2022-05-01",1.0],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",3.0],["2022-12-01",3.5],["2023-02-01",4.0],["2023-03-01",4.25],["2023-05-01",4.5],["2023-06-01",5.0],["2023-08-01",5.25],["2024-08-01",5.0],["2024-11-01",4.75],["2025-02-01",4.5]])},
-  { code:"JP", name:"Japan",          bank:"Bank of Japan",            flag:"🇯🇵", color:"#FFB74D", rating:"A+",   nextMeeting:"2026-04-30", fredId:null,
+  { code:"JP", name:"Japan",          bank:"Bank of Japan",            flag:"🇯🇵", color:"#FFB74D", rating:"A+",   nextMeeting:"2026-03-19", fredId:null,
     current:0.75, prev3m:0.5, rateDisplay:"0.75%", lastChange:{date:"2025-12-19",bps:+25},
     history:makeSeries([["2016-01-01",0.1],["2016-02-01",-0.1],["2024-03-01",0.1],["2024-07-01",0.25],["2025-01-01",0.5]])},
   { code:"CA", name:"Canada",         bank:"Bank of Canada",           flag:"🇨🇦", color:"#F06292", rating:"AAA",  nextMeeting:"2026-04-16", fredId:"IRSTCB01CAM156N",
     current:3.0, prev3m:3.25, rateDisplay:"3.00%", lastChange:{date:"2025-01-29",bps:-25},
     history:makeSeries([["2016-01-01",0.5],["2017-07-01",0.75],["2017-09-01",1.0],["2018-01-01",1.25],["2018-07-01",1.5],["2019-03-01",1.75],["2020-03-01",0.5],["2020-04-01",0.25],["2022-03-01",0.5],["2022-04-01",1.0],["2022-06-01",1.5],["2022-07-01",2.5],["2022-09-01",3.25],["2022-10-01",3.75],["2022-12-01",4.25],["2023-01-01",4.5],["2023-06-01",5.0],["2024-06-01",4.75],["2024-09-01",4.25],["2024-10-01",3.75],["2024-12-01",3.25],["2025-01-01",3.0]])},
-  { code:"AU", name:"Australia",      bank:"Reserve Bank of Australia",flag:"🇦🇺", color:"#4DB6AC", rating:"AAA",  nextMeeting:"2026-05-20", fredId:null,
+  { code:"AU", name:"Australia",      bank:"Reserve Bank of Australia",flag:"🇦🇺", color:"#4DB6AC", rating:"AAA",  nextMeeting:"2026-04-07", fredId:null,
     current:3.85, prev3m:3.6, rateDisplay:"3.85%", lastChange:{date:"2026-02-03",bps:+25},
     history:makeSeries([["2016-01-01",2.0],["2016-05-01",1.75],["2016-08-01",1.5],["2019-06-01",1.25],["2019-07-01",1.0],["2019-10-01",0.75],["2020-03-01",0.5],["2020-11-01",0.1],["2022-05-01",0.85],["2022-06-01",1.35],["2022-07-01",1.85],["2022-08-01",2.35],["2022-09-01",2.85],["2022-10-01",2.6],["2022-11-01",2.85],["2022-12-01",3.1],["2023-02-01",3.35],["2023-03-01",3.6],["2023-05-01",3.85],["2023-06-01",4.1],["2023-11-01",4.35],["2025-02-01",4.1]])},
-  { code:"CH", name:"Switzerland",    bank:"SNB",                      flag:"🇨🇭", color:"#FF8A65", rating:"AAA",  nextMeeting:"2026-06-18", fredId:null,
+  { code:"CH", name:"Switzerland",    bank:"SNB",                      flag:"🇨🇭", color:"#FF8A65", rating:"AAA",  nextMeeting:"2026-03-19", fredId:null,
     current:0.0, prev3m:0.0, rateDisplay:"0.00%", lastChange:{date:"2025-06-19",bps:-25},
     history:makeSeries([["2016-01-01",-0.75],["2022-06-01",-0.25],["2022-09-01",0.5],["2022-12-01",1.0],["2023-03-01",1.5],["2023-06-01",1.75],["2024-03-01",1.5],["2024-06-01",1.25],["2024-09-01",1.0],["2024-12-01",0.5],["2025-03-01",0.25]])},
-  { code:"SE", name:"Sweden",         bank:"Riksbank",                 flag:"🇸🇪", color:"#AED581", rating:"AAA",  nextMeeting:"2026-04-29", fredId:null,
+  { code:"SE", name:"Sweden",         bank:"Riksbank",                 flag:"🇸🇪", color:"#AED581", rating:"AAA",  nextMeeting:"2026-03-19", fredId:null,
     current:1.75, prev3m:1.75, rateDisplay:"1.75%", lastChange:{date:"2025-11-06",bps:-25},
     history:makeSeries([["2016-01-01",-0.35],["2019-01-01",-0.25],["2019-12-01",0.0],["2022-05-01",0.25],["2022-07-01",0.75],["2022-09-01",1.75],["2022-11-01",2.5],["2023-02-01",3.0],["2023-04-01",3.5],["2023-09-01",4.0],["2024-05-01",3.75],["2024-08-01",3.5],["2024-10-01",3.25],["2024-11-01",2.75],["2025-01-01",2.5],["2025-05-01",2.25]])},
-  { code:"NO", name:"Norway",         bank:"Norges Bank",              flag:"🇳🇴", color:"#80DEEA", rating:"AAA",  nextMeeting:"2026-03-27", fredId:null,
+  { code:"NO", name:"Norway",         bank:"Norges Bank",              flag:"🇳🇴", color:"#80DEEA", rating:"AAA",  nextMeeting:"2026-03-26", fredId:null,
     current:4.0, prev3m:4.0, rateDisplay:"4.00%", lastChange:{date:"2025-09-18",bps:-25},
     history:makeSeries([["2016-01-01",0.75],["2016-03-01",0.5],["2018-09-01",0.75],["2019-09-01",1.5],["2020-03-01",0.5],["2020-05-01",0.0],["2021-09-01",0.25],["2021-12-01",0.5],["2022-03-01",0.75],["2022-06-01",1.25],["2022-08-01",1.75],["2022-09-01",2.25],["2022-11-01",2.75],["2023-02-01",3.0],["2023-03-01",3.25],["2023-05-01",3.75],["2023-08-01",4.25],["2024-01-01",4.5]])},
   { code:"NZ", name:"New Zealand",    bank:"RBNZ",                     flag:"🇳🇿", color:"#B39DDB", rating:"AA+",  nextMeeting:"2026-04-09", fredId:null,
@@ -246,7 +245,7 @@ const BANKS = [
   { code:"KR", name:"South Korea",    bank:"Bank of Korea",            flag:"🇰🇷", color:"#F48FB1", rating:"AA",   nextMeeting:"2026-04-17", fredId:null,
     current:2.5, prev3m:2.75, rateDisplay:"2.50%", lastChange:{date:"2025-05-29",bps:-25},
     history:makeSeries([["2016-01-01",1.5],["2016-06-01",1.25],["2017-11-01",1.5],["2019-07-01",1.25],["2020-03-01",0.75],["2020-05-01",0.5],["2021-08-01",0.75],["2021-11-01",1.0],["2022-01-01",1.25],["2022-04-01",1.5],["2022-05-01",1.75],["2022-07-01",2.25],["2022-08-01",2.5],["2022-10-01",3.0],["2023-01-01",3.25],["2023-02-01",3.5],["2024-10-01",3.25],["2024-11-01",3.0],["2025-02-01",2.75]])},
-  { code:"CN", name:"China",          bank:"People's Bank of China",   flag:"🇨🇳", color:"#FFD54F", rating:"A+",   nextMeeting:null,          fredId:null,
+  { code:"CN", name:"China",          bank:"People's Bank of China (LPR 1Y)",   flag:"🇨🇳", color:"#FFD54F", rating:"A+",   nextMeeting:null,          fredId:null,
     current:3.1, prev3m:3.1, rateDisplay:"3.10%", lastChange:{date:"2024-10-21",bps:-25},
     history:makeSeries([["2016-01-01",4.35],["2019-08-01",4.25],["2019-11-01",4.15],["2020-02-01",4.05],["2020-04-01",3.85],["2022-05-01",3.7],["2022-08-01",3.65],["2023-06-01",3.55],["2023-08-01",3.45],["2024-07-01",3.35],["2024-10-01",3.1]])},
   // Static EM
@@ -355,7 +354,6 @@ function renderTable() {
         <span><span class="cname">${b.name}${srcTag}</span><span class="bname">${b.bank}</span></span></div></td>
       <td><span class="${isRange?"rate-range":"rate-val"}">${b.rateDisplay}</span></td>
       <td>${lcHtml}</td>
-      <td class="${ch<0?"ch-dn":ch>0?"ch-up":"ch-flat"}">${ch===0?"—":`${ch>0?"+":""}${ch.toFixed(2)}%`}</td>
       <td><span class="${ratingClass(b.rating)}">${b.rating}</span></td>
       <td>${meetHtml}</td>`;
     tr.onclick=()=>showDetail(b.code);
