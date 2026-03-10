@@ -191,42 +191,25 @@ function fmtDate(s){
   return new Date(s+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
-// ── JSONP fetch (bypasses CORS) ───────────────────────────────────────
-let _cbCounter = 0;
-function fetchFredJsonp(seriesId) {
-  return new Promise((resolve, reject) => {
-    const cbName = `_fredCb${_cbCounter++}`;
-    const timeout = setTimeout(() => {
-      delete window[cbName];
-      reject(new Error(`Timeout: ${seriesId}`));
-    }, 15000);
+// ── Fetch via CORS proxy ──────────────────────────────────────────────
+// corsproxy.io forwards the request server-side, bypassing browser CORS restriction
+async function fetchFredJsonp(seriesId) {
+  const fredUrl = `https://api.stlouisfed.org/fred/series/observations`
+    + `?series_id=${seriesId}`
+    + `&api_key=${FRED_API_KEY}`
+    + `&file_type=json`
+    + `&observation_start=2016-01-01`
+    + `&frequency=m`
+    + `&sort_order=asc`;
 
-    window[cbName] = (data) => {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (data.error_message) { reject(new Error(data.error_message)); return; }
-      const obs = (data.observations || [])
-        .filter(o => o.value !== ".")
-        .map(o => ({ x: o.date.slice(0,7), y: parseFloat(o.value) }));
-      resolve(obs);
-    };
-
-    const url = `https://api.stlouisfed.org/fred/series/observations`
-      + `?series_id=${seriesId}`
-      + `&api_key=${FRED_API_KEY}`
-      + `&file_type=json`
-      + `&observation_start=2016-01-01`
-      + `&frequency=m`
-      + `&sort_order=asc`
-      + `&callback=${cbName}`;
-
-    const script = document.createElement("script");
-    script.src = url;
-    script.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error(`Script error: ${seriesId}`)); };
-    document.head.appendChild(script);
-    // Clean up script tag after load
-    script.onload = () => document.head.removeChild(script);
-  });
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${seriesId}`);
+  const data = await res.json();
+  if (data.error_message) throw new Error(data.error_message);
+  return (data.observations || [])
+    .filter(o => o.value !== ".")
+    .map(o => ({ x: o.date.slice(0,7), y: parseFloat(o.value) }));
 }
 
 // ── Stats extraction from series ─────────────────────────────────────
@@ -518,4 +501,3 @@ init().catch(err=>{
 </script>
 </body>
 </html>
-
