@@ -191,8 +191,8 @@ function fmtDate(s){
   return new Date(s+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
-// ── Fetch via CORS proxy ──────────────────────────────────────────────
-// corsproxy.io forwards the request server-side, bypassing browser CORS restriction
+
+// ── Fetch FRED via allorigins proxy (bypasses CORS) ──────────────────
 async function fetchFredJsonp(seriesId) {
   const fredUrl = `https://api.stlouisfed.org/fred/series/observations`
     + `?series_id=${seriesId}`
@@ -202,10 +202,11 @@ async function fetchFredJsonp(seriesId) {
     + `&frequency=m`
     + `&sort_order=asc`;
 
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(fredUrl)}`;
   const res = await fetch(proxyUrl);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${seriesId}`);
-  const data = await res.json();
+  if (!res.ok) throw new Error(`Proxy error ${res.status}: ${seriesId}`);
+  const wrapper = await res.json();
+  const data = JSON.parse(wrapper.contents);
   if (data.error_message) throw new Error(data.error_message);
   return (data.observations || [])
     .filter(o => o.value !== ".")
