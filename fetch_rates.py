@@ -47,7 +47,7 @@ def fetch_bis_csv():
 
     for row in reader:
         # 컬럼명 대소문자 무관하게 처리
-        row_lower = {k.strip().upper(): v.strip() for k, v in row.items()}
+        row_lower = {k.strip().split(":")[0].upper(): v.strip() for k, v in row.items()}
 
         ref_area = row_lower.get("REF_AREA", "")
         time_str = row_lower.get("TIME_PERIOD", "")
