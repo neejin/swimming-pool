@@ -15,7 +15,7 @@ BIS_TO_DASH = {
 }
 
 def fetch_bis_csv():
-    url = "https://data.bis.org/bulkdownload/WS_CBPOL_csv_flat.zip"
+    url = "https://data.bis.org/static/bulk/WS_CBPOL_csv_flat.zip"
     print(f"[BIS] GET {url}")
     try:
         r = requests.get(url, timeout=90)
