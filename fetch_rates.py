@@ -64,6 +64,9 @@ def fetch_bis_csv():
             val = float(val_str)
         except ValueError:
             continue
+        import math
+        if math.isnan(val):
+            continue
 
         if dash_code not in by_code:
             by_code[dash_code] = {}
@@ -123,6 +126,8 @@ def extract_stats(series):
             lcd, lc = series[i]["x"] + "-01", int(rounded)
             break
 
+    import math
+    if math.isnan(prev3m): prev3m = current
     return {"current":current,"prev3m":prev3m,"lastChangeDate":lcd,"lastChangeBps":lc}
 
 
