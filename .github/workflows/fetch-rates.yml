@@ -1,0 +1,35 @@
+name: Fetch Central Bank Rates
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 매일 새벽 1시 UTC (한국시간 오전 10시)
+  workflow_dispatch:        # 수동 실행 버튼도 활성화
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch rates
+        run: python fetch_rates.py
+
+      - name: Commit data if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/rates.json
+          git diff --cached --quiet || git commit -m "chore: update rates $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
