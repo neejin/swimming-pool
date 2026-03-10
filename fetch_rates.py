@@ -1,85 +1,83 @@
 """
 fetch_rates.py
-BIS WS_CBPOL_D API로 중앙은행 정책금리를 수집해서 data/rates.json에 저장.
-FRED로 보완 (US, EU, CA).
+BIS bulk CSV 다운로드로 중앙은행 정책금리 수집 → data/rates.json 저장
+FRED API로 미국·EU·캐나다 보완
 """
 
-import json, os, requests
+import json, os, io, zipfile, csv, requests
 from datetime import datetime, timezone, timedelta
 
-# ── 설정 ──────────────────────────────────────────────────────────────
-FRED_API_KEY = os.environ.get("FRED_API_KEY", "")   # GitHub Secret에 저장
-START = "2016-01-01"
-OUT   = "data/rates.json"
+FRED_API_KEY = os.environ.get("FRED_API_KEY", "")
+START        = "2016-01"
+OUT          = "data/rates.json"
 
-# BIS country code → dashboard code
-BIS_MAP = {
-    "US": "US", "XM": "EU", "GB": "UK", "JP": "JP",
-    "CA": "CA", "AU": "AU", "CH": "CH", "SE": "SE",
-    "NO": "NO", "NZ": "NZ", "KR": "KR", "CN": "CN",
-    "IN": "IN", "MX": "MX", "BR": "BR", "ZA": "ZA",
-    "ID": "ID",
+# BIS REF_AREA 코드 → 대시보드 코드
+BIS_TO_DASH = {
+    "US":"US", "XM":"EU", "GB":"UK", "JP":"JP",
+    "CA":"CA", "AU":"AU", "CH":"CH", "SE":"SE",
+    "NO":"NO", "NZ":"NZ", "KR":"KR", "CN":"CN",
+    "IN":"IN", "MX":"MX", "BR":"BR", "ZA":"ZA",
+    "ID":"ID",
 }
 
-# ── BIS API ───────────────────────────────────────────────────────────
-def fetch_bis():
-    """BIS WS_CBPOL_D: daily central bank policy rates"""
-    countries = "+".join(BIS_MAP.keys())
-    url = (
-        f"https://stats.bis.org/api/v1/data/WS_CBPOL_D/"
-        f"D.{countries}.//?startPeriod={START}&format=jsondata"
-    )
+# ── BIS bulk CSV ───────────────────────────────────────────────────────
+def fetch_bis_csv():
+    url = "https://data.bis.org/bulkdownload/WS_CBPOL_csv_flat.zip"
+    print(f"[BIS] Downloading {url} ...")
     try:
-        r = requests.get(url, timeout=30)
+        r = requests.get(url, timeout=60)
         r.raise_for_status()
-        return parse_bis(r.json())
     except Exception as e:
-        print(f"[BIS] Error: {e}")
+        print(f"[BIS] Download failed: {e}")
         return {}
 
-def parse_bis(j):
-    """SDMX-JSON → {code: [{x, y}, ...]}"""
-    result = {}
     try:
-        structure = j["structure"]
-        # dimension position of REF_AREA (country)
-        dims = structure["dimensions"]["series"]
-        area_pos = next(i for i,d in enumerate(dims) if d["id"] == "REF_AREA")
-        area_map = {str(v["id"]): v["name"] for v in dims[area_pos]["values"]}
-
-        series = j["dataSets"][0]["series"]
-        for key, sdata in series.items():
-            parts    = key.split(":")
-            bis_code = list(area_map.keys())[int(parts[area_pos])]
-            dash_code = BIS_MAP.get(bis_code)
-            if not dash_code:
-                continue
-
-            obs = sdata.get("observations", {})
-            time_vals = j["structure"]["dimensions"]["observation"][0]["values"]
-            points = []
-            for idx_str, vals in obs.items():
-                idx = int(idx_str)
-                if vals[0] is None:
-                    continue
-                date_str = time_vals[idx]["id"]   # e.g. "2024-03-15"
-                ym = date_str[:7]                  # "2024-03"
-                points.append({"x": ym, "y": float(vals[0])})
-
-            # Keep only last point per month (deduplicate)
-            by_month = {}
-            for p in sorted(points, key=lambda p: p["x"]):
-                by_month[p["x"]] = p["y"]
-            monthly = [{"x": k, "y": v} for k,v in sorted(by_month.items())]
-
-            if monthly:
-                result[dash_code] = monthly
-                print(f"[BIS] {dash_code}: {len(monthly)} months, latest={monthly[-1]}")
+        z        = zipfile.ZipFile(io.BytesIO(r.content))
+        csv_name = next(n for n in z.namelist() if n.endswith(".csv"))
+        raw      = z.read(csv_name).decode("utf-8")
     except Exception as e:
-        print(f"[BIS] Parse error: {e}")
+        print(f"[BIS] ZIP parse failed: {e}")
+        return {}
+
+    reader  = csv.DictReader(io.StringIO(raw))
+    by_code = {}
+
+    for row in reader:
+        freq     = row.get("FREQ", "")
+        ref_area = row.get("REF_AREA", "")
+        time_str = row.get("TIME_PERIOD", "")
+        val_str  = row.get("OBS_VALUE", "")
+
+        if freq != "M" or not val_str or not time_str:
+            continue
+        if time_str < START:
+            continue
+
+        dash_code = BIS_TO_DASH.get(ref_area)
+        if not dash_code:
+            continue
+
+        try:
+            val = float(val_str)
+        except ValueError:
+            continue
+
+        ym = time_str[:7]
+        if dash_code not in by_code:
+            by_code[dash_code] = {}
+        by_code[dash_code][ym] = val
+
+    result = {}
+    for code, month_map in by_code.items():
+        series = [{"x": k, "y": v} for k, v in sorted(month_map.items())]
+        if series:
+            result[code] = series
+            print(f"[BIS] {code}: {len(series)} months, latest={series[-1]}")
+
     return result
 
-# ── FRED API (fallback / supplement) ─────────────────────────────────
+
+# ── FRED supplement ────────────────────────────────────────────────────
 FRED_SERIES = {
     "US": "FEDFUNDS",
     "EU": "ECBDFR",
@@ -93,7 +91,8 @@ def fetch_fred(series_id):
     url = (
         f"https://api.stlouisfed.org/fred/series/observations"
         f"?series_id={series_id}&api_key={FRED_API_KEY}"
-        f"&file_type=json&observation_start={START}&frequency=m&sort_order=asc"
+        f"&file_type=json&observation_start={START}-01"
+        f"&frequency=m&sort_order=asc"
     )
     try:
         r = requests.get(url, timeout=20)
@@ -111,19 +110,18 @@ def fetch_fred(series_id):
         print(f"[FRED] {series_id}: {e}")
         return []
 
-# ── Stats helpers ─────────────────────────────────────────────────────
+
+# ── Stats helpers ──────────────────────────────────────────────────────
 def extract_stats(series):
     if not series:
         return None
     current = series[-1]["y"]
 
-    # 3개월 전
-    d3m = datetime.now(timezone.utc) - timedelta(days=91)
+    d3m     = datetime.now(timezone.utc) - timedelta(days=91)
     d3m_str = d3m.strftime("%Y-%m")
-    prev_candidates = [p for p in series if p["x"] <= d3m_str]
-    prev3m = prev_candidates[-1]["y"] if prev_candidates else series[0]["y"]
+    cands   = [p for p in series if p["x"] <= d3m_str]
+    prev3m  = cands[-1]["y"] if cands else series[0]["y"]
 
-    # 마지막 변화
     last_change_date, last_change_bps = None, 0
     for i in range(len(series)-1, 0, -1):
         diff = round((series[i]["y"] - series[i-1]["y"]) * 100)
@@ -133,48 +131,43 @@ def extract_stats(series):
             break
 
     return {
-        "current": current,
-        "prev3m":  prev3m,
+        "current":        current,
+        "prev3m":         prev3m,
         "lastChangeDate": last_change_date,
         "lastChangeBps":  last_change_bps,
     }
 
-# ── Main ──────────────────────────────────────────────────────────────
+
+# ── Main ───────────────────────────────────────────────────────────────
 def main():
     os.makedirs("data", exist_ok=True)
+    data = fetch_bis_csv()
 
-    print("Fetching BIS data...")
-    data = fetch_bis()
-
-    # FRED supplement for US/EU/CA/UK (more reliable for these)
     if FRED_API_KEY:
-        print("Fetching FRED supplements...")
-        for code, series_id in FRED_SERIES.items():
-            series = fetch_fred(series_id)
+        print("\n[FRED] Supplementing US, EU, CA, UK ...")
+        for code, sid in FRED_SERIES.items():
+            series = fetch_fred(sid)
             if series:
                 data[code] = series
                 print(f"[FRED] {code}: {len(series)} months, latest={series[-1]}")
+    else:
+        print("[FRED] No API key — skipping")
 
-    # Build output
     out = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "rates": {}
+        "rates":   {}
     }
-
     for code, series in data.items():
         stats = extract_stats(series)
         if not stats:
             continue
-        out["rates"][code] = {
-            "series": series,
-            **stats
-        }
+        out["rates"][code] = {"series": series, **stats}
 
     with open(OUT, "w") as f:
         json.dump(out, f, separators=(",", ":"))
 
-    print(f"\nWrote {OUT} with {len(out['rates'])} countries.")
-    print("Countries:", sorted(out["rates"].keys()))
+    print(f"\nWrote {OUT} — {len(out['rates'])} countries: {sorted(out['rates'].keys())}")
+
 
 if __name__ == "__main__":
     main()
