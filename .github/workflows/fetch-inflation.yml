@@ -2,7 +2,7 @@ name: Fetch Inflation Data
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC daily (KST 11:00)
+    - cron: '59 14 * * *'
   workflow_dispatch:
 
 jobs:
