@@ -1057,6 +1057,15 @@ async function init() {
     if (!sheetsRes.ok) throw new Error('Sheets fetch failed');
     const csvText = await sheetsRes.text();
     cpiBaseline = parseSheetsCSV(csvText);
+
+    // FRED actual 데이터가 있는 달은 Sheets baseline에서 제거
+    // → 실제값 발표 후 Sheet 업데이트 없어도 자동으로 actual 우선
+    if (cpiHist.length > 0) {
+      const lastActual = cpiHist[cpiHist.length - 1].x;
+      const before = cpiBaseline.length;
+      cpiBaseline = cpiBaseline.filter(d => d.x > lastActual);
+      console.log(`[Sheets] trimmed ${before - cpiBaseline.length} months already covered by FRED actual (last actual: ${lastActual})`);
+    }
     console.log('[Sheets] baseline loaded:', cpiBaseline.length, 'months', cpiBaseline[0], '…', cpiBaseline[cpiBaseline.length-1]);
     if (cpiBaseline.length > 0) {
       const dot = document.getElementById('status-dot');
