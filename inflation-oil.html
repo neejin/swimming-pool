@@ -363,7 +363,12 @@
   <!-- oil control -->
   <div class="oil-panel">
     <div class="oil-panel-header">
-      <span class="oil-label">WTI Crude — Selected Price</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span class="oil-label">WTI Crude — Selected Price</span>
+        <span id="baseline-oil-pill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border-radius:3px;background:rgba(255,184,48,0.08);color:#ffb830;border:1px solid rgba(255,184,48,0.2);">
+          baseline: $<span id="baseline-oil-val">—</span>
+        </span>
+      </div>
       <div class="oil-display">
         <span class="oil-value" id="oil-display">$71</span>
         <span class="oil-unit">/bbl</span>
@@ -440,8 +445,8 @@
       <div class="legend-item" style="color:var(--blue)">
         <div class="legend-line solid"></div><span>CPI actual (BLS)</span>
       </div>
-      <div class="legend-item" style="color:rgba(74,159,255,0.45)">
-        <div class="legend-line dashed"></div><span>your baseline</span>
+      <div class="legend-item" style="color:var(--amber)">
+        <div class="legend-line dashed"></div><span>your baseline (no oil shift)</span>
       </div>
       <div class="legend-item" style="color:var(--blue)">
         <div class="legend-line dashed"></div><span>CPI + oil effect</span>
@@ -467,6 +472,11 @@
       Shaded band = ±uncertainty (widens with horizon). Historical CPI from BLS via FRED (CPIAUCSL).
       This is a simplified projection tool — not a FOMC forecast.
     </p>
+  </div>
+
+  <!-- Sheets debug bar -->
+  <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">
+    <span id="sheets-debug">Sheets: loading…</span>
   </div>
 
 </div><!-- /wrap -->
@@ -518,7 +528,8 @@ const FALLBACK_OIL = [
 
 // ── STATE ──
 let cpiHist = [], pceHist = [], oilHist = [];
-let cpiBaseline = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
+let cpiBaseline  = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
+let baselineOil  = null; // from Google Sheets: baseline_oil_price column (first row)
 let currentOil = 71;
 let selectedOil = 71;
 let freq = 'monthly';
@@ -548,7 +559,8 @@ function computeProjection(oilSel) {
   if (!cpiHist.length) return { cpiProj: [], cpiBandHi: [], cpiBandLo: [] };
 
   const lastCPI = cpiHist[cpiHist.length - 1];
-  const oilPct  = (oilSel - currentOil) / currentOil * 100;
+  const oilRef  = baselineOil != null ? baselineOil : currentOil;
+  const oilPct  = (oilSel - oilRef) / oilRef * 100;
 
   // Build baseline lookup from Sheets data
   const baselineMap = {};
@@ -609,7 +621,7 @@ function applyFreq(series) {
 // ── BUILD CHART DATA ──
 function buildChartData() {
   const { cpiProj, cpiBandHi, cpiBandLo } = computeProjection(selectedOil);
-  const baseOnly = applyFreq(computeProjection(currentOil).cpiProj);
+  const baseOnly = applyFreq(computeProjection(baselineOil != null ? baselineOil : currentOil).cpiProj);
 
   const histCPI   = applyFreq(cpiHist.slice(-HIST_MONTHS));
   const projCPI   = applyFreq(cpiProj);
@@ -648,6 +660,54 @@ function renderChart() {
   const d = buildChartData();
 
   const fmtLabels = d.allLabels.map(x => fmtLabel(x, freq === 'quarterly'));
+
+  // Custom gridline plugin: quarterly lines + stronger year lines
+  const gridPlugin = {
+    id: 'customGrid',
+    beforeDraw(chart) {
+      const { ctx, scales: { x, y }, data } = chart;
+      const labels = data.labels; // formatted labels
+      const rawLabels = data._rawLabels || [];
+      if (!rawLabels.length) return;
+
+      ctx.save();
+      rawLabels.forEach((ym, i) => {
+        const [yr, mo] = ym.split('-').map(Number);
+        const isYearStart    = mo === 1;
+        const isQuarterStart = mo === 1 || mo === 4 || mo === 7 || mo === 10;
+        if (!isQuarterStart) return;
+
+        const xPos = x.getPixelForValue(i);
+
+        if (isYearStart) {
+          // Year boundary — solid, more visible
+          ctx.strokeStyle = 'rgba(100,160,255,0.22)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+        } else {
+          // Quarter boundary — subtle
+          ctx.strokeStyle = 'rgba(80,130,200,0.09)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 4]);
+        }
+        ctx.beginPath();
+        ctx.moveTo(xPos, y.top);
+        ctx.lineTo(xPos, y.bottom);
+        ctx.stroke();
+
+        // Year label just above x-axis
+        if (isYearStart) {
+          ctx.setLineDash([]);
+          ctx.font = '500 10px IBM Plex Mono, monospace';
+          ctx.fillStyle = 'rgba(100,160,255,0.55)';
+          ctx.textAlign = 'left';
+          ctx.fillText(String(yr), xPos + 3, y.bottom + 12);
+        }
+      });
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  };
 
   // Today annotation via plugin
   const todayPlugin = {
@@ -704,19 +764,19 @@ function renderChart() {
       pointHoverRadius: 4,
       tension: 0.35
     },
-    // Baseline (Sheets, no oil adjustment)
+    // Baseline (Sheets, no oil adjustment) — amber solid
     {
-      label: 'Baseline (your forecast)',
+      label: 'Your baseline (no oil shift)',
       data: d.cpiBaseData,
-      borderColor: 'rgba(74,159,255,0.28)',
+      borderColor: '#ffb830',
       backgroundColor: 'transparent',
-      borderWidth: 1.5,
-      borderDash: [4, 4],
+      borderWidth: 2,
+      borderDash: [6, 3],
       pointRadius: 0,
-      pointHoverRadius: 3,
+      pointHoverRadius: 4,
       tension: 0.35
     },
-    // CPI projection with oil delta
+    // CPI projection with oil delta — blue dashed
     {
       label: 'CPI + oil effect',
       data: d.cpiProjData,
@@ -744,6 +804,7 @@ function renderChart() {
   if (chart) {
     chart.data.labels = fmtLabels;
     chart.data._todayIdx = d.todayIdx;
+    chart.data._rawLabels = d.allLabels;
     // Update data for all datasets
     chart.data.datasets.forEach((ds, i) => {
       if (datasets[i]) {
@@ -758,7 +819,7 @@ function renderChart() {
 
   chart = new Chart(ctx, {
     type: 'line',
-    data: { labels: fmtLabels, datasets, _todayIdx: d.todayIdx },
+    data: { labels: fmtLabels, datasets, _todayIdx: d.todayIdx, _rawLabels: d.allLabels },
     options: {
       responsive: true,
       interaction: { mode: 'index', intersect: false },
@@ -771,15 +832,19 @@ function renderChart() {
             maxTicksLimit: freq === 'quarterly' ? 14 : 18,
             maxRotation: 0
           },
-          grid: { color: 'rgba(80,140,220,0.06)', drawBorder: false }
+          grid: { display: false, drawBorder: false }
         },
         y: {
-          min: 0,
-          suggestedMax: 5,
+          afterDataLimits(scale) {
+            const range = scale.max - scale.min;
+            scale.min = Math.max(0, scale.min - range * 0.15);
+            scale.max = scale.max + range * 0.1;
+          },
           ticks: {
             color: '#4a6080',
             font: { family: 'IBM Plex Mono', size: 10 },
-            callback: v => v.toFixed(1) + '%'
+            callback: v => v.toFixed(1) + '%',
+            maxTicksLimit: 6
           },
           grid: { color: 'rgba(80,140,220,0.06)', drawBorder: false }
         }
@@ -806,7 +871,7 @@ function renderChart() {
         }
       }
     },
-    plugins: [todayPlugin]
+    plugins: [gridPlugin, todayPlugin]
   });
   chart.data._todayIdx = d.todayIdx;
   chart.update();
@@ -823,7 +888,7 @@ function updateMetrics() {
   }
 
   const { cpiProj } = computeProjection(selectedOil);
-  const { cpiProj: baseProj } = computeProjection(currentOil);
+  const { cpiProj: baseProj } = computeProjection(baselineOil != null ? baselineOil : currentOil);
 
   function getAt(arr, months) {
     const idx = Math.min(months - 1, arr.length - 1);
@@ -859,21 +924,26 @@ function updateOilUI(val) {
   const diffPct = ((diff / currentOil) * 100).toFixed(1);
   const delta   = document.getElementById('oil-delta');
   const vsText  = document.getElementById('oil-vs-text');
-  vsText.textContent = `vs current $${currentOil.toFixed(0)}`;
+  const oilRef  = baselineOil != null ? baselineOil : currentOil;
+  const diffRef = val - oilRef;
+  const diffPctRef = ((diffRef / oilRef) * 100).toFixed(1);
+  vsText.textContent = baselineOil != null
+    ? `vs baseline $${oilRef.toFixed(0)}`
+    : `vs current $${currentOil.toFixed(0)}`;
 
-  if (Math.abs(diff) < 1) {
+  if (Math.abs(diffRef) < 1) {
     delta.textContent = '(=)';
     delta.className = 'oil-delta flat';
     document.getElementById('oil-display').style.color = 'var(--amber)';
-  } else if (diff > 0) {
-    delta.textContent = `+${diffPct}%`;
+  } else if (diffRef > 0) {
+    delta.textContent = `+${diffPctRef}%`;
     delta.className = 'oil-delta up';
-    const intensity = Math.min(1, diff / 60);
+    const intensity = Math.min(1, diffRef / 60);
     document.getElementById('oil-display').style.color = `rgb(${Math.round(255 * (0.8 + 0.2 * intensity))},${Math.round(180 - 130 * intensity)},${Math.round(48 - 48 * intensity)})`;
   } else {
-    delta.textContent = `${diffPct}%`;
+    delta.textContent = `${diffPctRef}%`;
     delta.className = 'oil-delta down';
-    const intensity = Math.min(1, Math.abs(diff) / 40);
+    const intensity = Math.min(1, Math.abs(diffRef) / 40);
     document.getElementById('oil-display').style.color = `rgb(${Math.round(56 + 80 * (1-intensity))},${Math.round(217 - 60 * intensity)},${Math.round(192 - 30 * intensity)})`;
   }
 
@@ -897,24 +967,58 @@ function setFreq(f) {
 
 // ── PARSE GOOGLE SHEETS CSV ──
 function parseSheetsCSV(csvText) {
-  const lines = csvText.trim().split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z_]/g,''));
-  const monthIdx    = header.indexOf('month');
-  const baselineIdx = header.indexOf('cpi_baseline');
-  if (monthIdx < 0 || baselineIdx < 0) {
-    console.warn('[Sheets] columns not found. headers:', header);
+  // Split lines, strip \r
+  const lines = csvText.replace(/\r/g, '').trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) {
+    showSheetsStatus('⚠ Sheets: empty CSV', false);
     return [];
   }
+
+  // Parse header — strip BOM, quotes, lowercase, underscore
+  const header = lines[0].split(',').map(h =>
+    h.replace(/^\uFEFF/,'').replace(/^"|"$/g,'').trim()
+      .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')
+  );
+  console.log('[Sheets] headers:', header);
+
+  const monthIdx    = header.indexOf('month');
+  const baselineIdx = header.indexOf('cpi_baseline');
+  const oilIdx      = header.indexOf('baseline_oil_price');
+
+  console.log('[Sheets] month=', monthIdx, 'cpi_baseline=', baselineIdx, 'baseline_oil_price=', oilIdx);
+
+  if (monthIdx < 0 || baselineIdx < 0) {
+    showSheetsStatus(`⚠ Sheets: columns not found — headers: [${header.join(', ')}]`, false);
+    return [];
+  }
+
+  // baseline_oil_price: scan all rows for first non-empty value in that column
+  if (oilIdx >= 0) {
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g,'').trim());
+      const v = parseFloat(cols[oilIdx]);
+      if (!isNaN(v) && v > 0) { baselineOil = v; break; }
+    }
+    console.log('[Sheets] baselineOil =', baselineOil);
+  }
+
   const result = [];
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',');
-    const ym  = (cols[monthIdx] || '').trim().slice(0, 7);
-    const val = parseFloat((cols[baselineIdx] || '').trim());
-    if (!ym || isNaN(val)) continue;
+    const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g,'').trim());
+    const ym  = (cols[monthIdx] || '').slice(0, 7);  // "2026-02" or "2026-02-01" → "2026-02"
+    const val = parseFloat(cols[baselineIdx]);
+    if (!ym.match(/^\d{4}-\d{2}$/)) { console.warn('[Sheets] row', i, 'bad month:', ym); continue; }
+    if (isNaN(val)) { console.warn('[Sheets] row', i, 'empty value, skipping'); continue; }
     result.push({ x: ym, y: val });
   }
-  return result.sort((a, b) => a.x.localeCompare(b.x));
+
+  console.log('[Sheets] final rows:', result);
+  return result.sort((a,b) => a.x.localeCompare(b.x));
+}
+
+function showSheetsStatus(msg, ok) {
+  const el = document.getElementById('sheets-debug');
+  if (el) { el.textContent = msg; el.style.color = ok ? 'var(--green)' : 'var(--amber)'; }
 }
 
 // ── INIT ──
@@ -959,10 +1063,19 @@ async function init() {
       dot.className = 'status-dot live';
       const existingTxt = document.getElementById('status-text').textContent;
       document.getElementById('status-text').textContent = existingTxt + ` · Baseline from Sheets (${cpiBaseline.length}mo)`;
+      showSheetsStatus(`✓ Sheets loaded: ${cpiBaseline.length} months · ${cpiBaseline[0].x} → ${cpiBaseline[cpiBaseline.length-1].x}${baselineOil ? ' · baseline oil $'+baselineOil : ''}`, true);
+    } else {
+      showSheetsStatus('⚠ Sheets: data parsed but 0 rows — check column names (need: month, cpi_baseline)', false);
+    }
+    // Show baseline oil pill
+    if (baselineOil != null) {
+      document.getElementById('baseline-oil-pill').style.display = 'inline';
+      document.getElementById('baseline-oil-val').textContent = baselineOil.toFixed(0);
     }
   } catch(e) {
     console.warn('[Sheets] baseline not loaded:', e.message);
-    document.getElementById('status-text').textContent += ' · ⚠ Sheets baseline unavailable';
+    document.getElementById('status-text').textContent += ' · ⚠ Sheets unavailable';
+    showSheetsStatus(`⚠ Sheets fetch failed: ${e.message}`, false);
   }
 
   // Set initial slider to current oil
