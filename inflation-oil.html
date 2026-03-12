@@ -1166,18 +1166,18 @@ async function init() {
 let futuresChart = null;
 
 function fetchFutures() {
-  // 최근 3년 기준일 계산
-  const cutoff = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 3);
-    return d.toISOString().slice(0, 10); // YYYY-MM-DD
-  })();
-  const cutoffYM = cutoff.slice(0, 7);  // YYYY-MM (월간 데이터용)
+  const d3 = new Date();
+  d3.setFullYear(d3.getFullYear() - 3);
+  const cutoff   = d3.toISOString().slice(0, 10); // YYYY-MM-DD
+  const cutoffYM = cutoff.slice(0, 7);            // YYYY-MM
 
-  const wtiData  = oilDaily.length
+  // WTI: oil_daily는 YYYY-MM-DD 형식, fallback은 YYYY-MM
+  const wtiData = oilDaily.length
     ? oilDaily.filter(d => d.x >= cutoff)
     : oilHist.filter(d => d.x >= cutoffYM);
-  const rbobData = rbobHist.filter(d => d.x >= cutoff || d.x >= cutoffYM);
+
+  // RBOB: YYYY-MM-DD 형식 (weekly)
+  const rbobData = rbobHist.filter(d => d.x >= cutoff);
 
   buildFuturesChart(wtiData, rbobData);
 }
