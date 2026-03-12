@@ -340,9 +340,8 @@
     align-items: stretch;
   }
   .bottom-left { display: flex; flex-direction: column; }
-  .bottom-right { min-width: 0; display: flex; flex-direction: column; }
-  .bottom-right .chart-wrap { flex: 1; display: flex; flex-direction: column; }
-  .bottom-right .chart-wrap canvas { flex: 1; min-height: 0; }
+  .bottom-right { min-width: 0; }
+  .bottom-right .chart-wrap { height: 100%; box-sizing: border-box; }
 
   @media (max-width: 700px) {
     .bottom-grid { grid-template-columns: 1fr; }
@@ -484,7 +483,7 @@
           <span class="chart-title">WTI Crude &amp; RBOB Gasoline — Futures</span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);" id="futures-updated"></span>
         </div>
-        <canvas id="futures-chart" class="chart-canvas" style="flex:1;min-height:0;"></canvas>
+        <canvas id="futures-chart" class="chart-canvas" style="width:100%;min-height:120px;"></canvas>
         <div class="chart-legend" style="margin-top:8px;">
           <div class="legend-item" style="color:var(--amber)">
             <div class="legend-line solid"></div><span>WTI Crude (left)</span>
@@ -567,7 +566,7 @@ const FALLBACK_OIL = [
 ];
 
 // ── STATE ──
-let cpiHist = [], pceHist = [], oilHist = [];
+let cpiHist = [], pceHist = [], oilHist = [], rbobHist = [];
 let cpiBaseline  = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
 let baselineOil  = null; // from Google Sheets: baseline_oil_price column (first row)
 let currentOil = 71;
@@ -1166,21 +1165,10 @@ async function init() {
 // ── FUTURES CHART (WTI + RBOB from FRED via data/inflation.json oilHist) ──
 let futuresChart = null;
 
-async function fetchFutures() {
-  // WTI: oilHist already loaded (DCOILWTICO monthly from FRED)
-  // RBOB: fetch GASREGCOVW from FRED public API (no key needed for public series)
-  // Use 12 months of daily-ish data from what we have in oilHist
-  // Since inflation.json has monthly, we'll use that + show trend
-
-  // Use last 18 months of oilHist as WTI proxy
-  const wtiData = oilHist.slice(-18);
-
-  // For RBOB we use a fixed ratio approximation from WTI (RBOB ≈ WTI * 1.05 + 0.20 refining spread)
-  // or try to fetch from the public FRED endpoint directly
-  const FRED_RBOB = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=GASREGCOVW&vintage_date=';
-
-  // Attempt to build futures chart from what we have
-  buildFuturesChart(wtiData, rbobHist.slice(-18));
+function fetchFutures() {
+  const wtiData  = oilHist.slice(-18);
+  const rbobData = rbobHist.slice(-18);
+  buildFuturesChart(wtiData, rbobData);
 }
 
 function buildFuturesChart(wtiData, rbobData = []) {
