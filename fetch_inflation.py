@@ -42,7 +42,8 @@ def fetch_fred(series_id, frequency="m"):
                 continue
             if math.isnan(val):
                 continue
-            result.append({"x": o["date"][:7], "y": round(val, 4)})
+            date_str = o["date"][:10] if frequency in ("d", "w") else o["date"][:7]
+            result.append({"x": date_str, "y": round(val, 4)})
         print(f"[FRED] {series_id}: {len(result)} months, latest={result[-1] if result else 'none'}")
         return result
     except Exception as e:
