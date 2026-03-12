@@ -90,8 +90,8 @@ def main():
         "cpi": cpi_yoy,
         "pce": pce_yoy,
         "oil": oil,           # monthly, for CPI projection
-        "oil_daily": oil_daily[-180:],  # last ~6 months daily
-        "rbob": rbob[-40:],   # last ~9 months weekly
+        "oil_daily": oil_daily[-756:],  # last ~3 years daily
+        "rbob": rbob[-156:],  # last ~3 years weekly
     }
 
     with open(OUT, "w") as f:
