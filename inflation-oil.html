@@ -337,11 +337,10 @@
     grid-template-columns: 1fr 2fr;
     gap: 10px;
     margin-bottom: 12px;
-    align-items: stretch;
+    align-items: start;
   }
   .bottom-left { display: flex; flex-direction: column; }
   .bottom-right { min-width: 0; }
-  .bottom-right .chart-wrap { height: 100%; box-sizing: border-box; }
 
   @media (max-width: 700px) {
     .bottom-grid { grid-template-columns: 1fr; }
@@ -478,12 +477,12 @@
 
     <!-- right: oil futures mini chart -->
     <div class="bottom-right">
-      <div class="chart-wrap" style="height:100%;margin-bottom:0;">
+      <div class="chart-wrap" style="margin-bottom:0;">
         <div class="chart-controls" style="margin-bottom:8px;">
           <span class="chart-title">WTI Crude &amp; RBOB Gasoline — Futures</span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);" id="futures-updated"></span>
         </div>
-        <canvas id="futures-chart" class="chart-canvas" style="width:100%;min-height:120px;"></canvas>
+        <canvas id="futures-chart" class="chart-canvas" height="200"></canvas>
         <div class="chart-legend" style="margin-top:8px;">
           <div class="legend-item" style="color:var(--amber)">
             <div class="legend-line solid"></div><span>WTI Crude (left)</span>
