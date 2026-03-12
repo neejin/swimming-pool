@@ -565,7 +565,7 @@ const FALLBACK_OIL = [
 ];
 
 // ── STATE ──
-let cpiHist = [], pceHist = [], oilHist = [], rbobHist = [];
+let cpiHist = [], pceHist = [], oilHist = [], rbobHist = [], oilDaily = [];
 let cpiBaseline  = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
 let baselineOil  = null; // from Google Sheets: baseline_oil_price column (first row)
 let currentOil = 71;
@@ -1070,7 +1070,8 @@ async function init() {
     cpiHist = (json.cpi || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
     pceHist = (json.pce || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
     oilHist  = (json.oil  || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
-    rbobHist = (json.rbob || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
+    oilDaily = (json.oil_daily || []);
+    rbobHist = (json.rbob || []);
     currentOil = oilHist.length ? oilHist[oilHist.length-1].y : 71;
 
     const dot = document.getElementById('status-dot');
@@ -1165,8 +1166,9 @@ async function init() {
 let futuresChart = null;
 
 function fetchFutures() {
-  const wtiData  = oilHist.slice(-18);
-  const rbobData = rbobHist.slice(-18);
+  // WTI: 일간, RBOB: 주간
+  const wtiData  = oilDaily.length ? oilDaily : oilHist.slice(-18);
+  const rbobData = rbobHist;
   buildFuturesChart(wtiData, rbobData);
 }
 
