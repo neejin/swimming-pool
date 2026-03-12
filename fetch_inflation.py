@@ -13,6 +13,7 @@ SERIES = {
     "cpi_raw": "CPIAUCSL",   # BLS CPI All Urban Consumers (index level)
     "pce_raw": "PCEPI",      # BEA PCE Price Index (index level)
     "oil":     "DCOILWTICO", # WTI Crude Oil (monthly average, $/bbl)
+    "rbob":    "GASREGCOVW",  # RBOB Gasoline ($/gallon, weekly → monthly avg)
 }
 
 
@@ -73,6 +74,7 @@ def main():
     cpi_raw = fetch_fred("CPIAUCSL")
     pce_raw = fetch_fred("PCEPI")
     oil     = fetch_fred("DCOILWTICO")
+    rbob    = fetch_fred("GASREGCOVW", frequency="m")
 
     cpi_yoy = to_yoy(cpi_raw)
     pce_yoy = to_yoy(pce_raw)
@@ -80,12 +82,14 @@ def main():
     print(f"CPI YoY: {len(cpi_yoy)} months, latest={cpi_yoy[-1] if cpi_yoy else 'none'}")
     print(f"PCE YoY: {len(pce_yoy)} months, latest={pce_yoy[-1] if pce_yoy else 'none'}")
     print(f"WTI oil: {len(oil)} months, latest={oil[-1] if oil else 'none'}")
+    print(f"RBOB:    {len(rbob)} months, latest={rbob[-1] if rbob else 'none'}")
 
     out = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "cpi": cpi_yoy,
         "pce": pce_yoy,
         "oil": oil,
+        "rbob": rbob,
     }
 
     with open(OUT, "w") as f:
@@ -93,7 +97,8 @@ def main():
     print(f"\nWrote {OUT}")
     print(f"  CPI: {len(cpi_yoy)} records")
     print(f"  PCE: {len(pce_yoy)} records")
-    print(f"  Oil: {len(oil)} records")
+    print(f"  Oil:  {len(oil)} records")
+    print(f"  RBOB: {len(rbob)} records")
 
 
 if __name__ == "__main__":
