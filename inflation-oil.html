@@ -1166,9 +1166,19 @@ async function init() {
 let futuresChart = null;
 
 function fetchFutures() {
-  // WTI: 일간, RBOB: 주간
-  const wtiData  = oilDaily.length ? oilDaily : oilHist.slice(-18);
-  const rbobData = rbobHist;
+  // 최근 3년 기준일 계산
+  const cutoff = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 3);
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  })();
+  const cutoffYM = cutoff.slice(0, 7);  // YYYY-MM (월간 데이터용)
+
+  const wtiData  = oilDaily.length
+    ? oilDaily.filter(d => d.x >= cutoff)
+    : oilHist.filter(d => d.x >= cutoffYM);
+  const rbobData = rbobHist.filter(d => d.x >= cutoff || d.x >= cutoffYM);
+
   buildFuturesChart(wtiData, rbobData);
 }
 
