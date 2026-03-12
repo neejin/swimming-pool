@@ -331,6 +331,22 @@
   .model-note p + p { margin-top: 6px; }
   .hl { color: var(--cyan); }
 
+  /* ── bottom grid ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+  .bottom-left { display: flex; flex-direction: column; }
+  .bottom-right { min-width: 0; display: flex; flex-direction: column; }
+  .bottom-right .chart-wrap { flex: 1; display: flex; flex-direction: column; }
+  .bottom-right .chart-wrap canvas { flex: 1; min-height: 0; }
+
+  @media (max-width: 700px) {
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
   @media (max-width: 600px) {
     .metrics { grid-template-columns: 1fr 1fr; }
     .metrics .metric-card:first-child { grid-column: span 2; }
@@ -356,8 +372,8 @@
 
   <!-- page header -->
   <div class="page-header">
-    <h1>Oil-CPI Trajectory <span>Monitor</span></h1>
-    <div class="page-sub">Select an oil price scenario · CPI (BLS) projection · 3-year horizon</div>
+    <h1>Oil-CPI Trajectory Monitor</h1>
+    <div class="page-sub">Select an oil price scenario · CPI (BLS) projection · 30-month horizon</div>
   </div>
 
   <!-- oil control -->
@@ -396,41 +412,6 @@
     </div>
   </div>
 
-  <!-- metric cards -->
-  <div class="metrics">
-    <div class="metric-card">
-      <div class="metric-horizon">Current (actual)</div>
-      <div class="metric-row">
-        <div class="metric-val" id="m-now-cpi">—</div>
-        <div class="metric-label">CPI YoY</div>
-      </div>
-      <div class="metric-sub">
-        <span class="m-pce" id="m-now-pce">PCE —</span>
-        <span class="m-cpi" id="m-now-oil">WTI —</span>
-      </div>
-    </div>
-    <div class="metric-card cpi-card">
-      <div class="metric-horizon">+1 year (projected)</div>
-      <div class="metric-row">
-        <div class="metric-val" id="m-1yr-cpi">—</div>
-        <div class="metric-label">CPI</div>
-      </div>
-      <div class="metric-sub">
-        <span class="m-pce" id="m-1yr-pce">PCE —</span>
-      </div>
-    </div>
-    <div class="metric-card cpi-card">
-      <div class="metric-horizon">+3 years (projected)</div>
-      <div class="metric-row">
-        <div class="metric-val" id="m-3yr-cpi">—</div>
-        <div class="metric-label">CPI</div>
-      </div>
-      <div class="metric-sub">
-        <span class="m-pce" id="m-3yr-pce">PCE —</span>
-      </div>
-    </div>
-  </div>
-
   <!-- chart -->
   <div class="chart-controls">
     <span class="chart-title">YoY Inflation — Historical &amp; Projection</span>
@@ -457,6 +438,65 @@
       </div>
     </div>
   </div>
+
+  <!-- bottom grid: metrics left, oil futures right -->
+  <div class="bottom-grid">
+
+    <!-- left: metric cards stacked -->
+    <div class="bottom-left">
+      <div class="metric-card" style="margin-bottom:8px;">
+        <div class="metric-horizon">Current (actual)</div>
+        <div class="metric-row">
+          <div class="metric-val" id="m-now-cpi">—</div>
+          <div class="metric-label">CPI YoY</div>
+        </div>
+        <div class="metric-sub">
+          <span class="m-pce" id="m-now-pce">PCE —</span>
+          <span class="m-cpi" id="m-now-oil">WTI —</span>
+        </div>
+      </div>
+      <div class="metric-card cpi-card" style="margin-bottom:8px;">
+        <div class="metric-horizon">+1 year (projected)</div>
+        <div class="metric-row">
+          <div class="metric-val" id="m-1yr-cpi">—</div>
+          <div class="metric-label">CPI</div>
+        </div>
+        <div class="metric-sub">
+          <span class="m-pce" id="m-1yr-pce">PCE —</span>
+        </div>
+      </div>
+      <div class="metric-card cpi-card">
+        <div class="metric-horizon">+30 months (projected)</div>
+        <div class="metric-row">
+          <div class="metric-val" id="m-3yr-cpi">—</div>
+          <div class="metric-label">CPI</div>
+        </div>
+        <div class="metric-sub">
+          <span class="m-pce" id="m-3yr-pce">PCE —</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- right: oil futures mini chart -->
+    <div class="bottom-right">
+      <div class="chart-wrap" style="height:100%;margin-bottom:0;">
+        <div class="chart-controls" style="margin-bottom:8px;">
+          <span class="chart-title">WTI Crude &amp; RBOB Gasoline — Futures</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);" id="futures-updated"></span>
+        </div>
+        <canvas id="futures-chart" class="chart-canvas" style="flex:1;min-height:0;"></canvas>
+        <div class="chart-legend" style="margin-top:8px;">
+          <div class="legend-item" style="color:var(--amber)">
+            <div class="legend-line solid"></div><span>WTI Crude (left)</span>
+          </div>
+          <div class="legend-item" style="color:var(--cyan)">
+            <div class="legend-line solid"></div><span>RBOB Gasoline (right)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /bottom-grid -->
 
   <!-- model note -->
   <div class="model-note">
@@ -488,7 +528,7 @@
 const SHEETS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROEOcbYCpqsDGJPWZcBrMhTgT_G504T05rgXR7_xp9FYNb0z0uq_6DDbbODpzW-3D9Ho045qKVj3Zl/pub?output=csv";
 const CPI_ELAST  = 0.030;   // pp per 1% oil change, cumulative over 12 months
 const HIST_MONTHS = 30;
-const PROJ_MONTHS = 36;
+const PROJ_MONTHS = 30;
 const OIL_MIN = 40, OIL_MAX = 130;
 
 // Lag shape: 12 weights summing to 1 (peak at index 4-5)
@@ -897,8 +937,8 @@ function updateMetrics() {
 
   const cpi1yr  = getAt(cpiProj, 12);
   const base1yr = getAt(baseProj, 12);
-  const cpi3yr  = getAt(cpiProj, 36);
-  const base3yr = getAt(baseProj, 36);
+  const cpi3yr  = getAt(cpiProj, 30);
+  const base3yr = getAt(baseProj, 30);
 
   document.getElementById('m-1yr-cpi').textContent = cpi1yr != null ? cpi1yr.toFixed(2) + '%' : '—';
   const d1 = (cpi1yr != null && base1yr != null) ? (cpi1yr - base1yr) : null;
@@ -1031,7 +1071,8 @@ async function init() {
 
     cpiHist = (json.cpi || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
     pceHist = (json.pce || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
-    oilHist = (json.oil || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
+    oilHist  = (json.oil  || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
+    rbobHist = (json.rbob || []).filter(d => d.x >= '2022-01').slice(-HIST_MONTHS);
     currentOil = oilHist.length ? oilHist[oilHist.length-1].y : 71;
 
     const dot = document.getElementById('status-dot');
@@ -1119,6 +1160,129 @@ async function init() {
 
   updateMetrics();
   renderChart();
+  fetchFutures();
+}
+
+// ── FUTURES CHART (WTI + RBOB from FRED via data/inflation.json oilHist) ──
+let futuresChart = null;
+
+async function fetchFutures() {
+  // WTI: oilHist already loaded (DCOILWTICO monthly from FRED)
+  // RBOB: fetch GASREGCOVW from FRED public API (no key needed for public series)
+  // Use 12 months of daily-ish data from what we have in oilHist
+  // Since inflation.json has monthly, we'll use that + show trend
+
+  // Use last 18 months of oilHist as WTI proxy
+  const wtiData = oilHist.slice(-18);
+
+  // For RBOB we use a fixed ratio approximation from WTI (RBOB ≈ WTI * 1.05 + 0.20 refining spread)
+  // or try to fetch from the public FRED endpoint directly
+  const FRED_RBOB = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=GASREGCOVW&vintage_date=';
+
+  // Attempt to build futures chart from what we have
+  buildFuturesChart(wtiData, rbobHist.slice(-18));
+}
+
+function buildFuturesChart(wtiData, rbobData = []) {
+  if (!wtiData.length) return;
+
+  // Merge WTI and RBOB on common x labels
+  const wtiMap  = Object.fromEntries(wtiData.map(d => [d.x, d.y]));
+  const rbobMap = Object.fromEntries(rbobData.map(d => [d.x, d.y]));
+  const labels  = [...new Set([...wtiData.map(d => d.x), ...rbobData.map(d => d.x)])].sort();
+  const wtiVals  = labels.map(x => wtiMap[x]  ?? null);
+  const rbobVals = labels.map(x => rbobMap[x] ?? null);
+
+  const ctx = document.getElementById('futures-chart');
+  if (!ctx) return;
+
+  if (futuresChart) { futuresChart.destroy(); futuresChart = null; }
+
+  futuresChart = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'WTI $/bbl',
+          data: wtiVals,
+          borderColor: 'rgba(255,184,48,0.85)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.3,
+          yAxisID: 'y1',
+        },
+        {
+          label: 'RBOB $/gal',
+          data: rbobVals,
+          borderColor: 'rgba(56,217,192,0.85)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.3,
+          yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          grid: { color: 'rgba(80,140,220,0.06)' },
+          ticks: {
+            font: { family: 'IBM Plex Mono', size: 9 },
+            color: '#4a6080',
+            maxTicksLimit: 6,
+            maxRotation: 0,
+          },
+          border: { color: 'rgba(80,140,220,0.15)' }
+        },
+        y1: {
+          position: 'left',
+          grid: { color: 'rgba(80,140,220,0.06)' },
+          ticks: {
+            font: { family: 'IBM Plex Mono', size: 9 },
+            color: 'rgba(255,184,48,0.7)',
+            callback: v => '$' + v.toFixed(0),
+            maxTicksLimit: 4,
+          },
+          border: { color: 'rgba(80,140,220,0.15)' }
+        },
+        y2: {
+          position: 'right',
+          grid: { display: false },
+          ticks: {
+            font: { family: 'IBM Plex Mono', size: 9 },
+            color: 'rgba(56,217,192,0.7)',
+            callback: v => '$' + v.toFixed(2),
+            maxTicksLimit: 4,
+          },
+          border: { color: 'rgba(80,140,220,0.15)' }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d1525',
+          borderColor: 'rgba(80,140,220,0.25)',
+          borderWidth: 1,
+          padding: 8,
+          titleColor: '#4a6080',
+          titleFont: { family: 'IBM Plex Mono', size: 10 },
+          bodyColor: '#d4e0f4',
+          bodyFont: { family: 'IBM Plex Mono', size: 11 },
+        }
+      }
+    }
+  });
+
+  // Update label
+  const upd = document.getElementById('futures-updated');
+  if (upd && wtiData.length) upd.textContent = 'thru ' + wtiData[wtiData.length-1].x;
 }
 
 document.addEventListener('DOMContentLoaded', init);
