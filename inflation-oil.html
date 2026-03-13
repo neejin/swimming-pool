@@ -828,7 +828,7 @@ function renderChart() {
     },
     // Fed 2% target
     {
-      label: 'Fed target (2%)',
+      label: '_Fed target (2%)',
       data: Array(d.allLabels.length).fill(2.0),
       borderColor: 'rgba(62,232,138,0.2)',
       backgroundColor: 'transparent',
@@ -890,10 +890,13 @@ function renderChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: !('ontouchstart' in window),
           backgroundColor: '#0d1525',
           borderColor: 'rgba(80,140,220,0.25)',
           borderWidth: 1,
           padding: 10,
+          position: 'nearest',
+          yAlign: 'bottom',
           titleColor: '#4a6080',
           titleFont: { family: 'IBM Plex Mono', size: 10 },
           bodyColor: '#d4e0f4',
@@ -913,6 +916,48 @@ function renderChart() {
   });
   chart.data._todayIdx = d.todayIdx;
   chart.update();
+
+  // 모바일 탭 하이라이트
+  if ('ontouchstart' in window) {
+    const canvas = document.getElementById('main-chart');
+    canvas.addEventListener('touchstart', onChartTouch, { passive: true });
+    canvas.addEventListener('touchmove',  onChartTouch, { passive: true });
+  }
+}
+
+let _hlIdx = -1;
+function onChartTouch(e) {
+  if (!chart) return;
+  const touch  = e.touches[0];
+  const canvas = document.getElementById('main-chart');
+  const rect   = canvas.getBoundingClientRect();
+  const x      = touch.clientX - rect.left;
+
+  // Chart.js 내부 좌표 변환으로 가장 가까운 x축 인덱스 찾기
+  const xScale = chart.scales.x;
+  let   closest = -1, minDist = Infinity;
+  chart.data.labels.forEach((_, i) => {
+    const px = xScale.getPixelForValue(i);
+    const d  = Math.abs(px - x);
+    if (d < minDist) { minDist = d; closest = i; }
+  });
+  if (closest === _hlIdx) return;
+  _hlIdx = closest;
+
+  // 모든 데이터셋의 pointRadius 리셋 후 해당 인덱스만 강조
+  chart.data.datasets.forEach(ds => {
+    if (ds.label && ds.label.startsWith('_')) return;
+    const len = (ds.data || []).length;
+    ds.pointRadius      = Array(len).fill(0);
+    ds.pointHoverRadius = Array(len).fill(0);
+    if (closest >= 0 && closest < len && ds.data[closest] != null) {
+      ds.pointRadius[closest]      = 4;
+      ds.pointBackgroundColor      = ds.pointBackgroundColor || [];
+      ds.pointBackgroundColor      = Array(len).fill('transparent');
+      ds.pointBackgroundColor[closest] = ds.borderColor;
+    }
+  });
+  chart.update('none'); // 애니메이션 없이 즉시 업데이트
 }
 
 // ── UPDATE METRICS ──
