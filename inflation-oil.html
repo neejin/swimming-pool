@@ -13,11 +13,11 @@
     --bg2:     #0a1428;
     --surface: #0f1e36;
     --card:    #132030;
-    --border:  rgba(80,140,220,0.12);
-    --border2: rgba(80,140,220,0.22);
-    --text:    #d4e0f4;
-    --muted:   #4a6080;
-    --dim:     #2a3f58;
+    --border:  rgba(80,140,220,0.20);
+    --border2: rgba(80,140,220,0.35);
+    --text:    #eaf2ff;
+    --muted:   #7a9dc0;
+    --dim:     #4a6a8a;
     --cyan:    #38d9c0;
     --blue:    #4a9fff;
     --amber:   #ffb830;
@@ -884,7 +884,7 @@ function renderChart() {
       scales: {
         x: {
           ticks: {
-            color: '#4a6080',
+            color: '#b8d4f0',
             font: { family: 'IBM Plex Mono', size: 10 },
             maxTicksLimit: freq === 'quarterly' ? 14 : 18,
             maxRotation: 0
@@ -898,12 +898,12 @@ function renderChart() {
             scale.max = scale.max + range * 0.1;
           },
           ticks: {
-            color: '#4a6080',
+            color: '#b8d4f0',
             font: { family: 'IBM Plex Mono', size: 10 },
             callback: v => v.toFixed(1) + '%',
             maxTicksLimit: 6
           },
-          grid: { color: 'rgba(80,140,220,0.06)', drawBorder: false }
+          grid: { color: 'rgba(80,140,220,0.18)', drawBorder: false }
         }
       },
       plugins: {
@@ -916,9 +916,9 @@ function renderChart() {
           padding: 10,
           position: 'nearest',
           yAlign: 'bottom',
-          titleColor: '#4a6080',
+          titleColor: '#8ab8d8',
           titleFont: { family: 'IBM Plex Mono', size: 10 },
-          bodyColor: '#d4e0f4',
+          bodyColor: '#eaf2ff',
           bodyFont: { family: 'IBM Plex Mono', size: 11 },
           callbacks: {
             label: ctx => {
@@ -1341,36 +1341,36 @@ function buildFuturesChart(wtiData, rbobData = []) {
       interaction: { mode: 'index', intersect: false },
       scales: {
         x: {
-          grid: { color: 'rgba(80,140,220,0.06)' },
+          grid: { color: 'rgba(80,140,220,0.10)' },
           ticks: {
             font: { family: 'IBM Plex Mono', size: 9 },
-            color: '#4a6080',
+            color: '#b8d4f0',
             maxTicksLimit: 6,
             maxRotation: 0,
           },
-          border: { color: 'rgba(80,140,220,0.15)' }
+          border: { color: 'rgba(80,140,220,0.25)' }
         },
         y1: {
           position: 'left',
-          grid: { color: 'rgba(80,140,220,0.06)' },
+          grid: { color: 'rgba(80,140,220,0.10)' },
           ticks: {
             font: { family: 'IBM Plex Mono', size: 9 },
-            color: 'rgba(255,184,48,0.7)',
+            color: 'rgba(255,184,48,1.0)',
             callback: v => '$' + v.toFixed(0),
             maxTicksLimit: 4,
           },
-          border: { color: 'rgba(80,140,220,0.15)' }
+          border: { color: 'rgba(80,140,220,0.25)' }
         },
         y2: {
           position: 'right',
           grid: { display: false },
           ticks: {
             font: { family: 'IBM Plex Mono', size: 9 },
-            color: 'rgba(56,217,192,0.7)',
+            color: 'rgba(56,217,192,1.0)',
             callback: v => '$' + v.toFixed(2),
             maxTicksLimit: 4,
           },
-          border: { color: 'rgba(80,140,220,0.15)' }
+          border: { color: 'rgba(80,140,220,0.25)' }
         }
       },
       plugins: {
@@ -1380,9 +1380,9 @@ function buildFuturesChart(wtiData, rbobData = []) {
           borderColor: 'rgba(80,140,220,0.25)',
           borderWidth: 1,
           padding: 8,
-          titleColor: '#4a6080',
+          titleColor: '#8ab8d8',
           titleFont: { family: 'IBM Plex Mono', size: 10 },
-          bodyColor: '#d4e0f4',
+          bodyColor: '#eaf2ff',
           bodyFont: { family: 'IBM Plex Mono', size: 11 },
         }
       }
