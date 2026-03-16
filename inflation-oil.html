@@ -345,6 +345,20 @@
   @media (max-width: 700px) {
     .bottom-grid { grid-template-columns: 1fr; }
   }
+  .dl-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .dl-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
   @media (max-width: 600px) {
     .metrics { grid-template-columns: 1fr 1fr; }
     .metrics .metric-card:first-child { grid-column: span 2; }
@@ -413,9 +427,14 @@
   <!-- chart -->
   <div class="chart-controls">
     <span class="chart-title">YoY Inflation — Historical &amp; Projection</span>
-    <div class="toggle-wrap">
-      <button class="toggle-btn active" id="btn-monthly" onclick="setFreq('monthly')">Monthly</button>
-      <button class="toggle-btn" id="btn-quarterly" onclick="setFreq('quarterly')">Quarterly</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="toggle-wrap">
+        <button class="toggle-btn active" id="btn-monthly" onclick="setFreq('monthly')">Monthly</button>
+        <button class="toggle-btn" id="btn-quarterly" onclick="setFreq('quarterly')">Quarterly</button>
+      </div>
+      <button class="dl-btn" onclick="downloadCSV()" title="Download forecast data as CSV">
+        ↓ CSV
+      </button>
     </div>
   </div>
   <div class="chart-wrap">
@@ -1102,6 +1121,52 @@ function parseSheetsCSV(csvText) {
 function showSheetsStatus(msg, ok) {
   const el = document.getElementById('sheets-debug');
   if (el) { el.textContent = msg; el.style.color = ok ? 'var(--green)' : 'var(--amber)'; }
+}
+
+// ── DOWNLOAD CSV ──
+function downloadCSV() {
+  const { cpiProj } = computeProjection(selectedOil);
+  const { cpiProj: baseProj } = computeProjection(baselineOil != null ? baselineOil : currentOil);
+
+  const rows = [];
+  // 헤더
+  rows.push([
+    'month',
+    'type',
+    'cpi_actual_%',
+    'cpi_baseline_%',
+    'cpi_oil_effect_%',
+    `oil_assumption_$/bbl`
+  ].join(','));
+
+  // 실제 historical
+  cpiHist.forEach(d => {
+    rows.push([d.x, 'actual', d.y.toFixed(3), '', '', ''].join(','));
+  });
+
+  // 전망 (baseline + oil effect)
+  const n = Math.max(baseProj.length, cpiProj.length);
+  for (let i = 0; i < n; i++) {
+    const bp = baseProj[i];
+    const cp = cpiProj[i];
+    const label = cp ? cp.x : bp ? bp.x : '';
+    const base  = bp ? bp.y.toFixed(3) : '';
+    const proj  = cp ? cp.y.toFixed(3) : '';
+    rows.push([label, 'projection', '', base, proj, selectedOil.toFixed(0)].join(','));
+  }
+
+  const csv     = rows.join('
+');
+  const blob    = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url     = URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  const today   = new Date().toISOString().slice(0, 10);
+  a.href        = url;
+  a.download    = `cpi_projection_oil${selectedOil}_${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ── INIT ──
