@@ -519,8 +519,8 @@
   <div class="model-note">
     <div class="model-note-title">Model &amp; Methodology</div>
     <p>
-      <span class="hl">Pass-through model</span>: oil price change → CPI/PCE via distributed lag (peak effect at 6–9 months, fade by month 24).
-      Elasticities: CPI <span class="hl">0.030 pp per 1% oil change</span>, PCE <span class="hl">0.018 pp per 1% oil change</span>.
+      <span class="hl">Pass-through model</span>: oil price change → CPI/PCE via distributed lag (peak effect at 3–4 months, fade by month 12 (Kilian &amp; Zhou 2023, Dallas Fed)).
+      Elasticities: CPI <span class="hl">0.030 pp per 1% oil change</span>. 6-month distributed lag, weights sum to 1.0.
       These are based on empirical literature estimates (IMF 2011; BIS 2012 working papers).
     </p>
     <p>
@@ -549,7 +549,7 @@ const PROJ_MONTHS = 30;
 const OIL_MIN = 40, OIL_MAX = 130;
 
 // Lag shape: 12 weights summing to 1 (peak at index 4-5)
-const LAG_W = [0.03, 0.07, 0.12, 0.15, 0.16, 0.14, 0.11, 0.08, 0.06, 0.04, 0.03, 0.01];
+const LAG_W = [0.08, 0.16, 0.22, 0.24, 0.18, 0.12]; // 6개월, peak 3-4개월 (Kilian et al.)
 
 // ── FALLBACK DATA (approximate, overridden by inflation.json) ──
 const FALLBACK_CPI = [
@@ -640,17 +640,18 @@ function computeProjection(oilSel) {
     }
 
     // Oil pass-through on top of baseline
-    // Phase 1 (m=1-12): pass-through builds up via lag weights
-    // Phase 2 (m=13-24): base effects kick in, YoY oil effect decays
-    // Phase 3 (m=25+): fully absorbed into base
+    
     let cpiOil = 0;
-    if (m <= 12) {
+    if (m <= 6) {
+      // Phase 1 (m=1-6): pass-through 누적
       const cumW = LAG_W.slice(0, m).reduce((a, b) => a + b, 0);
       cpiOil = oilPct * CPI_ELAST * cumW;
-    } else if (m <= 24) {
-      const decay = 1 - (m - 12) / 12;
+    } else if (m <= 12) {
+      // Phase 2 (m=7-12): base effect로 YoY 영향 선형 decay
+      const decay = 1 - (m - 6) / 6;
       cpiOil = oilPct * CPI_ELAST * decay;
     }
+    // Phase 3 (m=13+): 완전 흡수, oil 효과 = 0
 
     const cpiY = Math.max(0, cpiBase + cpiOil);
     const band = 0.25 + 0.015 * m;  // uncertainty widens with horizon
