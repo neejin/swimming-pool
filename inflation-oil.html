@@ -706,7 +706,24 @@ function applyFreq(series) {
 // ── BUILD CHART DATA ──
 function buildChartData() {
   const { cpiProj, cpiBandHi, cpiBandLo } = computeProjection(selectedOil);
-  const baseOnly = applyFreq(computeProjection(currentOil).cpiProj); // baseline = 현재 유가 유지
+  // baseline = Sheets 원본값 그대로 (oil 효과 없음)
+  const rawBaseline = (() => {
+    if (!cpiHist.length || !cpiBaseline.length) return [];
+    const lastCPI = cpiHist[cpiHist.length-1];
+    const baselineMap = {};
+    cpiBaseline.forEach(d => { baselineMap[d.x] = d.y; });
+    const result = [];
+    const lastBase = cpiBaseline[cpiBaseline.length-1].y;
+    for (let m = 1; m <= PROJ_MONTHS; m++) {
+      const xm = addMonths(lastCPI.x, m);
+      result.push({ x: xm, y: baselineMap[xm] != null ? baselineMap[xm] : lastBase });
+    }
+    return result;
+  })();
+  const baseOnly = applyFreq(rawBaseline);
+  console.log('[BASELINE DEBUG] rawBaseline length:', rawBaseline.length,
+    '| first 3:', rawBaseline.slice(0,3).map(d=>d.x+':'+d.y),
+    '| cpiBaseline length:', cpiBaseline.length);
 
   const histCPI   = applyFreq(cpiHist.slice(-HIST_MONTHS));
   const projCPI   = applyFreq(cpiProj);
@@ -1018,7 +1035,20 @@ function updateMetrics() {
   }
 
   const { cpiProj } = computeProjection(selectedOil);
-  const { cpiProj: baseProj } = computeProjection(currentOil);
+  // baseline = Sheets 원본값 그대로
+  const baseProj = (() => {
+    if (!cpiHist.length || !cpiBaseline.length) return [];
+    const lastCPI = cpiHist[cpiHist.length-1];
+    const baselineMap = {};
+    cpiBaseline.forEach(d => { baselineMap[d.x] = d.y; });
+    const result = [];
+    const lastBase = cpiBaseline[cpiBaseline.length-1].y;
+    for (let m = 1; m <= PROJ_MONTHS; m++) {
+      const xm = addMonths(lastCPI.x, m);
+      result.push({ x: xm, y: baselineMap[xm] != null ? baselineMap[xm] : lastBase });
+    }
+    return result;
+  })();
 
   function getAt(arr, months) {
     const idx = Math.min(months - 1, arr.length - 1);
@@ -1169,7 +1199,20 @@ function showSheetsStatus(msg, ok) {
 // ── DOWNLOAD CSV ──
 function downloadCSV() {
   const { cpiProj } = computeProjection(selectedOil);
-  const { cpiProj: baseProj } = computeProjection(baselineOil != null ? baselineOil : currentOil);
+  // baseline = Sheets 원본값
+  const baseProj = (() => {
+    if (!cpiHist.length || !cpiBaseline.length) return [];
+    const lastCPI = cpiHist[cpiHist.length-1];
+    const baselineMap = {};
+    cpiBaseline.forEach(d => { baselineMap[d.x] = d.y; });
+    const result = [];
+    const lastBase = cpiBaseline[cpiBaseline.length-1].y;
+    for (let m = 1; m <= PROJ_MONTHS; m++) {
+      const xm = addMonths(lastCPI.x, m);
+      result.push({ x: xm, y: baselineMap[xm] != null ? baselineMap[xm] : lastBase });
+    }
+    return result;
+  })();
 
   const rows = [];
   // 헤더
