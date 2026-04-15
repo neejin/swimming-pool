@@ -397,7 +397,10 @@
           baseline: $<span id="baseline-oil-val">—</span>
         </span>
         <span id="shock-pill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border-radius:3px;background:rgba(255,90,110,0.08);color:#ff7a8a;border:1px solid rgba(255,90,110,0.25);">
-          shock from $<span id="shock-from-val">—</span> · <span id="shock-start-val">—</span>
+          ↑ from $<span id="shock-from-val">—</span> · <span id="shock-start-val">—</span>
+        </span>
+        <span id="shock2-pill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border-radius:3px;background:rgba(56,217,192,0.08);color:#38d9c0;border:1px solid rgba(56,217,192,0.25);">
+          ↓ to $<span id="shock2-price-val">—</span> · <span id="shock2-date-val">—</span>
         </span>
       </div>
       <div class="oil-display">
@@ -590,8 +593,10 @@ const FALLBACK_OIL = [
 let cpiHist = [], pceHist = [], oilHist = [], rbobHist = [], oilDaily = [];
 let cpiBaseline  = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
 let baselineOil   = null; // from Google Sheets: baseline_oil_price
-let shockFromPrice = null; // from Google Sheets: shock_from_price
-let shockStartDate = null; // from Google Sheets: shock_start_date (YYYY-MM)
+let shockFromPrice  = null; // from Google Sheets: shock_from_price
+let shockStartDate  = null; // from Google Sheets: shock_start_date (YYYY-MM)
+let shockTwoPrice   = null; // from Google Sheets: shock2_price (하향 안정화 목표)
+let shockTwoDate    = null; // from Google Sheets: shock2_start_date (하향 안정화 시작)
 let currentOil = 71;
 let selectedOil = 71;
 let freq = 'monthly';
@@ -674,12 +679,29 @@ function computeProjection(oilSel) {
     }
 
     // 과거 충격의 잔여 효과: shock는 (elapsed + m)번째 달에 해당
-    const pastEffect   = oilEffect(pastOilPct,   elapsed + m);
+    const pastEffect = oilEffect(pastOilPct, elapsed + m);
 
-    // 미래 시나리오 추가 효과: 오늘(m=1)부터 새 충격
-    const futureEffect = oilEffect(futureOilPct, m);
+    // 하향 안정화 효과: currentOil → shock2Price, shock2Date부터 시작
+    let stabEffect = 0;
+    if (shockTwoDate && shockTwoPrice != null) {
+      const shock2OilPct = (shockTwoPrice - currentOil) / currentOil * 100;
+      const monthsUntilStab = Math.max(0, monthsDiff(lastCPI.x, shockTwoDate));
+      const lagAge = m - monthsUntilStab;
+      if (lagAge >= 1) {
+        stabEffect = oilEffect(shock2OilPct, lagAge);
+      }
+    }
 
-    const cpiOil = pastEffect + futureEffect;
+    // 슬라이더 추가 편차: shock2Price(또는 currentOil)에서 oilSel로의 추가 변화
+    const sliderBase    = shockTwoPrice != null ? shockTwoPrice : currentOil;
+    const sliderOilPct  = (oilSel - sliderBase) / sliderBase * 100;
+    const sliderMonths  = shockTwoDate
+      ? Math.max(0, monthsDiff(lastCPI.x, shockTwoDate))
+      : 0;
+    const sliderLagAge  = m - sliderMonths;
+    const sliderEffect  = sliderLagAge >= 1 ? oilEffect(sliderOilPct, sliderLagAge) : 0;
+
+    const cpiOil = pastEffect + stabEffect + sliderEffect;
     const cpiY   = Math.max(0, cpiBase + cpiOil);
     const band   = 0.25 + 0.015 * m;
 
@@ -721,9 +743,6 @@ function buildChartData() {
     return result;
   })();
   const baseOnly = applyFreq(rawBaseline);
-  console.log('[BASELINE DEBUG] rawBaseline length:', rawBaseline.length,
-    '| first 3:', rawBaseline.slice(0,3).map(d=>d.x+':'+d.y),
-    '| cpiBaseline length:', cpiBaseline.length);
 
   const histCPI   = applyFreq(cpiHist.slice(-HIST_MONTHS));
   const projCPI   = applyFreq(cpiProj);
@@ -1084,11 +1103,11 @@ function updateOilUI(val) {
   const diffPct = ((diff / currentOil) * 100).toFixed(1);
   const delta   = document.getElementById('oil-delta');
   const vsText  = document.getElementById('oil-vs-text');
-  const oilRef  = baselineOil != null ? baselineOil : currentOil;
+  const oilRef  = shockTwoPrice != null ? shockTwoPrice : currentOil;
   const diffRef = val - oilRef;
   const diffPctRef = ((diffRef / oilRef) * 100).toFixed(1);
-  vsText.textContent = baselineOil != null
-    ? `vs baseline $${oilRef.toFixed(0)}`
+  vsText.textContent = shockTwoPrice != null
+    ? `vs expected $${oilRef.toFixed(0)}`
     : `vs current $${currentOil.toFixed(0)}`;
 
   if (Math.abs(diffRef) < 1) {
@@ -1170,11 +1189,27 @@ function parseSheetsCSV(csvText) {
   }
 
   // shock_start_date
-  const shockDateIdx = header.findIndex(h => h.includes('shock_start') || h.includes('shock_date'));
+  const shockDateIdx = header.findIndex(h => h === 'shock_start_date');
   if (shockDateIdx >= 0) {
     const raw = (firstRow[shockDateIdx] || '').slice(0, 7);
     if (raw.match(/^\d{4}-\d{2}$/)) { shockStartDate = raw; }
     console.log('[Sheets] shockStartDate =', shockStartDate);
+  }
+
+  // shock2_price (하향 안정화 목표 유가)
+  const shock2PriceIdx = header.findIndex(h => h === 'shock2_price');
+  if (shock2PriceIdx >= 0) {
+    const v = parseFloat(firstRow[shock2PriceIdx]);
+    if (!isNaN(v) && v > 0) { shockTwoPrice = v; }
+    console.log('[Sheets] shockTwoPrice =', shockTwoPrice);
+  }
+
+  // shock2_start_date (하향 안정화 시작월)
+  const shock2DateIdx = header.findIndex(h => h === 'shock2_start_date');
+  if (shock2DateIdx >= 0) {
+    const raw = (firstRow[shock2DateIdx] || '').slice(0, 7);
+    if (raw.match(/^\d{4}-\d{2}$/)) { shockTwoDate = raw; }
+    console.log('[Sheets] shockTwoDate =', shockTwoDate);
   }
 
   const result = [];
@@ -1320,6 +1355,17 @@ async function init() {
       document.getElementById('shock-pill').style.display = 'inline';
       document.getElementById('shock-from-val').textContent = shockFromPrice.toFixed(0);
       document.getElementById('shock-start-val').textContent = shockStartDate;
+    }
+    if (shockTwoPrice != null && shockTwoDate) {
+      document.getElementById('shock2-pill').style.display = 'inline';
+      document.getElementById('shock2-price-val').textContent = shockTwoPrice.toFixed(0);
+      document.getElementById('shock2-date-val').textContent = shockTwoDate;
+      // Base 버튼을 shock2Price로 업데이트
+      const baseBtn = document.getElementById('btn-base');
+      if (baseBtn) {
+        baseBtn.dataset.val = shockTwoPrice.toFixed(0);
+        baseBtn.textContent = `Base $${shockTwoPrice.toFixed(0)} ▸ expected`;
+      }
     }
   } catch(e) {
     console.warn('[Sheets] baseline not loaded:', e.message);
