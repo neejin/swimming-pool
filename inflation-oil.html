@@ -396,6 +396,9 @@
         <span id="baseline-oil-pill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border-radius:3px;background:rgba(255,184,48,0.08);color:#ffb830;border:1px solid rgba(255,184,48,0.2);">
           baseline: $<span id="baseline-oil-val">—</span>
         </span>
+        <span id="shock-pill" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:3px 10px;border-radius:3px;background:rgba(255,90,110,0.08);color:#ff7a8a;border:1px solid rgba(255,90,110,0.25);">
+          shock from $<span id="shock-from-val">—</span> · <span id="shock-start-val">—</span>
+        </span>
       </div>
       <div class="oil-display">
         <span class="oil-value" id="oil-display">$71</span>
@@ -525,7 +528,7 @@
     </p>
     <p>
       <span class="hl">Baseline path</span>: your forecast loaded from Google Sheets (month, cpi_baseline columns).
-      Oil adjustment is layered on top — when oil = current price, projection = your baseline exactly.
+      Past oil shock (shock_start_date 이후) 잔여 pass-through + 미래 시나리오 추가 효과를 분리 계산.
       Shaded band = ±uncertainty (widens with horizon). Historical CPI from BLS via FRED (CPIAUCSL).
       This is a simplified projection tool — not a FOMC forecast.
     </p>
@@ -586,7 +589,9 @@ const FALLBACK_OIL = [
 // ── STATE ──
 let cpiHist = [], pceHist = [], oilHist = [], rbobHist = [], oilDaily = [];
 let cpiBaseline  = [];   // from Google Sheets: [{x:"2026-03", y:2.8}, ...]
-let baselineOil  = null; // from Google Sheets: baseline_oil_price column (first row)
+let baselineOil   = null; // from Google Sheets: baseline_oil_price
+let shockFromPrice = null; // from Google Sheets: shock_from_price
+let shockStartDate = null; // from Google Sheets: shock_start_date (YYYY-MM)
 let currentOil = 71;
 let selectedOil = 71;
 let freq = 'monthly';
@@ -600,6 +605,12 @@ function addMonths(ym, n) {
   while (m < 1)  { m += 12; y--; }
   return `${y}-${String(m).padStart(2,'0')}`;
 }
+function monthsDiff(ymA, ymB) {
+  // ymA가 ymB보다 몇 달 전인지 (양수 = ymA가 과거)
+  const [yA, mA] = ymA.split('-').map(Number);
+  const [yB, mB] = ymB.split('-').map(Number);
+  return (yB - yA) * 12 + (mB - mA);
+}
 function ymToDate(ym) {
   const [y,m] = ym.split('-').map(Number);
   return new Date(y, m-1, 1);
@@ -612,14 +623,38 @@ function fmtLabel(ym, quarterly) {
 }
 
 // ── PROJECTION MODEL ──
+function oilEffect(oilPct, lagAgeAtM) {
+  // lagAgeAtM: 충격 시작 후 몇 번째 달인지 (1-based)
+  if (lagAgeAtM <= 0) return 0;
+  if (lagAgeAtM <= 6) {
+    const cumW = LAG_W.slice(0, lagAgeAtM).reduce((a, b) => a + b, 0);
+    return oilPct * CPI_ELAST * cumW;
+  } else if (lagAgeAtM <= 12) {
+    const decay = 1 - (lagAgeAtM - 6) / 6;
+    return oilPct * CPI_ELAST * decay;
+  }
+  return 0; // phase 3: 완전 흡수
+}
+
 function computeProjection(oilSel) {
   if (!cpiHist.length) return { cpiProj: [], cpiBandHi: [], cpiBandLo: [] };
 
   const lastCPI = cpiHist[cpiHist.length - 1];
-  const oilRef  = baselineOil != null ? baselineOil : currentOil;
-  const oilPct  = (oilSel - oilRef) / oilRef * 100;
 
-  // Build baseline lookup from Sheets data
+  // ── 과거 충격 (shock_start_date 이후 이미 진행 중) ──
+  // elapsed: shock 시작일로부터 마지막 actual 데이터까지 몇 달 지났는지
+  let elapsed = 0;
+  let pastOilPct = 0;
+  if (shockStartDate && shockFromPrice != null && shockFromPrice > 0) {
+    elapsed = monthsDiff(shockStartDate, lastCPI.x); // 0이면 이번달 충격
+    elapsed = Math.max(0, elapsed);
+    pastOilPct = (currentOil - shockFromPrice) / shockFromPrice * 100;
+  }
+
+  // ── 미래 시나리오 추가 변화 (오늘부터 currentOil → oilSel) ──
+  const futureOilPct = (oilSel - currentOil) / currentOil * 100;
+
+  // Build baseline lookup
   const baselineMap = {};
   cpiBaseline.forEach(d => { baselineMap[d.x] = d.y; });
 
@@ -629,32 +664,24 @@ function computeProjection(oilSel) {
   for (let m = 1; m <= PROJ_MONTHS; m++) {
     const xm = addMonths(lastCPI.x, m);
 
-    // Baseline: use Sheets value if available, else hold last Sheets value
+    // Baseline (Sheets)
     let cpiBase;
     if (baselineMap[xm] != null) {
       cpiBase = baselineMap[xm];
     } else {
-      // Extend with last available Sheets value (flat extrapolation)
-      const lastBase = cpiBaseline.length ? cpiBaseline[cpiBaseline.length - 1].y : lastCPI.y;
+      const lastBase = cpiBaseline.length ? cpiBaseline[cpiBaseline.length-1].y : lastCPI.y;
       cpiBase = lastBase;
     }
 
-    // Oil pass-through on top of baseline
-    
-    let cpiOil = 0;
-    if (m <= 6) {
-      // Phase 1 (m=1-6): pass-through 누적
-      const cumW = LAG_W.slice(0, m).reduce((a, b) => a + b, 0);
-      cpiOil = oilPct * CPI_ELAST * cumW;
-    } else if (m <= 12) {
-      // Phase 2 (m=7-12): base effect로 YoY 영향 선형 decay
-      const decay = 1 - (m - 6) / 6;
-      cpiOil = oilPct * CPI_ELAST * decay;
-    }
-    // Phase 3 (m=13+): 완전 흡수, oil 효과 = 0
+    // 과거 충격의 잔여 효과: shock는 (elapsed + m)번째 달에 해당
+    const pastEffect   = oilEffect(pastOilPct,   elapsed + m);
 
-    const cpiY = Math.max(0, cpiBase + cpiOil);
-    const band = 0.25 + 0.015 * m;  // uncertainty widens with horizon
+    // 미래 시나리오 추가 효과: 오늘(m=1)부터 새 충격
+    const futureEffect = oilEffect(futureOilPct, m);
+
+    const cpiOil = pastEffect + futureEffect;
+    const cpiY   = Math.max(0, cpiBase + cpiOil);
+    const band   = 0.25 + 0.015 * m;
 
     cpiProj.push({ x: xm, y: +cpiY.toFixed(2) });
     cpiBandHi.push({ x: xm, y: +Math.min(10, cpiY + band).toFixed(2) });
@@ -679,7 +706,7 @@ function applyFreq(series) {
 // ── BUILD CHART DATA ──
 function buildChartData() {
   const { cpiProj, cpiBandHi, cpiBandLo } = computeProjection(selectedOil);
-  const baseOnly = applyFreq(computeProjection(baselineOil != null ? baselineOil : currentOil).cpiProj);
+  const baseOnly = applyFreq(computeProjection(currentOil).cpiProj); // baseline = 현재 유가 유지
 
   const histCPI   = applyFreq(cpiHist.slice(-HIST_MONTHS));
   const projCPI   = applyFreq(cpiProj);
@@ -991,7 +1018,7 @@ function updateMetrics() {
   }
 
   const { cpiProj } = computeProjection(selectedOil);
-  const { cpiProj: baseProj } = computeProjection(baselineOil != null ? baselineOil : currentOil);
+  const { cpiProj: baseProj } = computeProjection(currentOil);
 
   function getAt(arr, months) {
     const idx = Math.min(months - 1, arr.length - 1);
@@ -1095,14 +1122,29 @@ function parseSheetsCSV(csvText) {
     return [];
   }
 
-  // baseline_oil_price: scan all rows for first non-empty value in that column
+  // 첫 data row에서 메타 컬럼 읽기
+  const firstRow = lines[1].split(',').map(c => c.replace(/^"|"$/g,'').trim());
+
   if (oilIdx >= 0) {
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g,'').trim());
-      const v = parseFloat(cols[oilIdx]);
-      if (!isNaN(v) && v > 0) { baselineOil = v; break; }
-    }
+    const v = parseFloat(firstRow[oilIdx]);
+    if (!isNaN(v) && v > 0) { baselineOil = v; }
     console.log('[Sheets] baselineOil =', baselineOil);
+  }
+
+  // shock_from_price
+  const shockFromIdx = header.findIndex(h => h.includes('shock_from'));
+  if (shockFromIdx >= 0) {
+    const v = parseFloat(firstRow[shockFromIdx]);
+    if (!isNaN(v) && v > 0) { shockFromPrice = v; }
+    console.log('[Sheets] shockFromPrice =', shockFromPrice);
+  }
+
+  // shock_start_date
+  const shockDateIdx = header.findIndex(h => h.includes('shock_start') || h.includes('shock_date'));
+  if (shockDateIdx >= 0) {
+    const raw = (firstRow[shockDateIdx] || '').slice(0, 7);
+    if (raw.match(/^\d{4}-\d{2}$/)) { shockStartDate = raw; }
+    console.log('[Sheets] shockStartDate =', shockStartDate);
   }
 
   const result = [];
@@ -1230,6 +1272,11 @@ async function init() {
     if (baselineOil != null) {
       document.getElementById('baseline-oil-pill').style.display = 'inline';
       document.getElementById('baseline-oil-val').textContent = baselineOil.toFixed(0);
+    }
+    if (shockFromPrice != null && shockStartDate) {
+      document.getElementById('shock-pill').style.display = 'inline';
+      document.getElementById('shock-from-val').textContent = shockFromPrice.toFixed(0);
+      document.getElementById('shock-start-val').textContent = shockStartDate;
     }
   } catch(e) {
     console.warn('[Sheets] baseline not loaded:', e.message);
