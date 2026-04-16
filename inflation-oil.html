@@ -525,7 +525,7 @@
   <div class="model-note">
     <div class="model-note-title">Model &amp; Methodology</div>
     <p>
-      <span class="hl">Pass-through model</span>: oil price change → CPI/PCE via distributed lag (peak effect at 3–4 months, fade by month 12 (Kilian &amp; Zhou 2023, Dallas Fed)).
+      <span class="hl">Pass-through model</span>: oil price change → CPI/PCE via distributed lag (상승: peak 3-4개월, 6개월 내 완전 반영 | 하락: peak 5-6개월, 10개월 누적 · 75% 강도 (rockets &amp; feathers)).
       Elasticities: CPI <span class="hl">0.030 pp per 1% oil change</span>. 6-month distributed lag, weights sum to 1.0.
       These are based on empirical literature estimates (IMF 2011; BIS 2012 working papers).
     </p>
@@ -555,7 +555,11 @@ const PROJ_MONTHS = 30;
 const OIL_MIN = 40, OIL_MAX = 130;
 
 // Lag shape: 12 weights summing to 1 (peak at index 4-5)
-const LAG_W = [0.08, 0.16, 0.22, 0.24, 0.18, 0.12]; // 6개월, peak 3-4개월 (Kilian et al.)
+// 상승 충격: 6개월, peak 3-4개월 (Kilian et al. / rockets and feathers)
+const LAG_W_UP   = [0.08, 0.16, 0.22, 0.24, 0.18, 0.12];
+// 하락 충격: 10개월, peak 5-6개월, 총 효과 75% (feathers - 더 느리고 약함)
+const LAG_W_DOWN = [0.04, 0.09, 0.14, 0.18, 0.20, 0.18, 0.09, 0.05, 0.02, 0.01];
+const DOWN_SCALE = 0.75; // 하락 효과는 상승의 75%만 반영
 
 // ── FALLBACK DATA (approximate, overridden by inflation.json) ──
 const FALLBACK_CPI = [
@@ -631,14 +635,35 @@ function fmtLabel(ym, quarterly) {
 function oilEffect(oilPct, lagAgeAtM) {
   // lagAgeAtM: 충격 시작 후 몇 번째 달인지 (1-based)
   if (lagAgeAtM <= 0) return 0;
-  if (lagAgeAtM <= 6) {
-    const cumW = LAG_W.slice(0, lagAgeAtM).reduce((a, b) => a + b, 0);
-    return oilPct * CPI_ELAST * cumW;
-  } else if (lagAgeAtM <= 12) {
-    const decay = 1 - (lagAgeAtM - 6) / 6;
-    return oilPct * CPI_ELAST * decay;
+
+  if (oilPct >= 0) {
+    // ── 상승 충격: rockets (빠르고 강함) ──
+    // Phase 1: 6개월 누적
+    if (lagAgeAtM <= 6) {
+      const cumW = LAG_W_UP.slice(0, lagAgeAtM).reduce((a, b) => a + b, 0);
+      return oilPct * CPI_ELAST * cumW;
+    }
+    // Phase 2: 7-12개월 선형 decay
+    if (lagAgeAtM <= 12) {
+      const decay = 1 - (lagAgeAtM - 6) / 6;
+      return oilPct * CPI_ELAST * decay;
+    }
+    return 0;
+
+  } else {
+    // ── 하락 충격: feathers (느리고 약함) ──
+    // Phase 1: 10개월 누적
+    if (lagAgeAtM <= 10) {
+      const cumW = LAG_W_DOWN.slice(0, lagAgeAtM).reduce((a, b) => a + b, 0);
+      return oilPct * CPI_ELAST * DOWN_SCALE * cumW;
+    }
+    // Phase 2: 11-15개월 선형 decay
+    if (lagAgeAtM <= 15) {
+      const decay = 1 - (lagAgeAtM - 10) / 5;
+      return oilPct * CPI_ELAST * DOWN_SCALE * decay;
+    }
+    return 0;
   }
-  return 0; // phase 3: 완전 흡수
 }
 
 function computeProjection(oilSel) {
