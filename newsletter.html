@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>글로벌 마켓 나이트 브리핑 · Swimming Pool</title>
+<style>
+  :root {
+    --bg: #eef1ec;
+    --bg-raised: #ffffff;
+    --ink: #1b2430;
+    --ink-soft: #4b5563;
+    --ink-faint: #7c8794;
+    --rule: #ccd2c8;
+    --accent: #9c6b1f;
+    --accent-strong: #7a5115;
+    --accent-wash: #f2e6cd;
+    --up: #3f7d5c;
+    --down: #a4453a;
+    --up-wash: #e3ede6;
+    --down-wash: #f3e5e2;
+    --font-body: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    --font-data: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Noto Sans Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121820;
+      --bg-raised: #1a222c;
+      --ink: #e6e9ec;
+      --ink-soft: #aab2bc;
+      --ink-faint: #7b8492;
+      --rule: #303a46;
+      --accent: #d9a54a;
+      --accent-strong: #eec06a;
+      --accent-wash: #2c2314;
+      --up: #6bbf92;
+      --down: #dd8377;
+      --up-wash: #1b2822;
+      --down-wash: #2c1e1c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 0 20px 80px;
+  }
+  .sheet {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* Top bar */
+  .topbar {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 0;
+  }
+  .back-link {
+    font-family: var(--font-data);
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* Masthead */
+  .masthead {
+    text-align: center;
+    padding: 28px 0 22px;
+    border-bottom: 3px solid var(--ink);
+  }
+  .eyebrow {
+    font-family: var(--font-data);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  .masthead h1 {
+    font-size: 34px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .masthead .meta {
+    font-family: var(--font-data);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+  .masthead .meta strong { color: var(--ink); }
+
+  /* Headline summary box */
+  .headlines {
+    margin: 26px 0 8px;
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 18px 20px;
+  }
+  .headlines .label {
+    font-family: var(--font-data);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 10px;
+  }
+  .headlines ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .headlines li {
+    font-size: 15.5px;
+    line-height: 1.55;
+    margin-bottom: 7px;
+  }
+  .headlines li:last-child { margin-bottom: 0; }
+  .headlines li::marker { color: var(--accent); }
+
+  /* Sections */
+  section.block { margin-top: 40px; }
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .block-num {
+    font-family: var(--font-data);
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .block-head h2 {
+    font-size: 19px;
+    margin: 0;
+    font-weight: 750;
+    letter-spacing: -0.005em;
+  }
+
+  h3.sub {
+    font-size: 14.5px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h3.sub .flag {
+    font-family: var(--font-data);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* Indicator cards */
+  .indicator {
+    padding: 12px 0 14px 14px;
+    border-left: 2px solid var(--rule);
+    margin-bottom: 12px;
+  }
+  .indicator:last-child { margin-bottom: 0; }
+  .indicator-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .indicator-head .iname {
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+  .indicator-head .itime {
+    font-family: var(--font-data);
+    font-size: 11px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .idata {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .dpoint {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dpoint .dlabel {
+    font-family: var(--font-data);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .dpoint .dval {
+    font-family: var(--font-data);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .dpoint .dval.up { color: var(--up); }
+  .dpoint .dval.down { color: var(--down); }
+  .icomment {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  p.news {
+    font-size: 14.5px;
+    line-height: 1.75;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  p.news .tag {
+    font-weight: 700;
+    color: var(--accent-strong);
+  }
+  p.news:last-child { margin-bottom: 0; }
+
+  /* Earnings table */
+  .table-wrap { overflow-x: auto; margin: 4px 0 4px; }
+  table.earnings {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 620px;
+  }
+  table.earnings th {
+    text-align: left;
+    font-family: var(--font-data);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 0 10px 8px 0;
+    border-bottom: 1px solid var(--ink);
+    font-weight: 600;
+  }
+  table.earnings td {
+    padding: 9px 10px 9px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  table.earnings tr:last-child td { border-bottom: none; }
+  table.earnings .co { font-weight: 700; white-space: nowrap; }
+  table.earnings .ticker { color: var(--ink-faint); font-family: var(--font-data); font-size: 11.5px; }
+  table.earnings .num { font-family: var(--font-data); white-space: nowrap; }
+  .pill {
+    display: inline-block;
+    font-family: var(--font-data);
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill.beat { background: var(--up-wash); color: var(--up); }
+  .pill.miss { background: var(--down-wash); color: var(--down); }
+
+  /* Agenda */
+  .agenda-item {
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .agenda-head .atime {
+    font-family: var(--font-data);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    white-space: nowrap;
+  }
+  .agenda-head .aname {
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .anote {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* Market brief grid */
+  .market-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 520px) {
+    .market-grid { grid-template-columns: 1fr; }
+  }
+  .market-card {
+    background: var(--bg-raised);
+    border: 1px solid var(--rule);
+    padding: 14px 16px;
+  }
+  .market-card .cat {
+    font-family: var(--font-data);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 13.5px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .lbl { color: var(--ink-soft); }
+  .row .lbl .lblnote { display: block; font-size: 10px; color: var(--ink-faint); margin-top: 1px; }
+  .valwrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+  }
+  .valwrap .val {
+    font-family: var(--font-data);
+    font-weight: 700;
+    font-size: 13.5px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .valwrap .chg {
+    font-family: var(--font-data);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--ink-faint);
+  }
+  .valwrap .chg.up { color: var(--up); }
+  .valwrap .chg.down { color: var(--down); }
+  .val.up { color: var(--up); }
+  .val.down { color: var(--down); }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--ink-faint);
+  }
+
+  ::selection { background: var(--accent-wash); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="back-link">← home</a>
+</div>
+
+<div class="sheet">
+
+  <div class="masthead">
+    <p class="eyebrow">GLOBAL MARKET NIGHT BRIEFING</p>
+    <h1>글로벌 마켓 나이트 브리핑</h1>
+    <p class="meta">2026년 7월 28일(화) · 美 7/27(월) 정규장 &amp; 유럽장 마감 기준</p>
+  </div>
+
+  <div class="headlines">
+    <p class="label">오늘의 한줄 요약</p>
+    <ul>
+      <li>美-이란, 상호 공격 잠정 중단 — 유가 하루 만에 7~9% 급락, 금값은 반등</li>
+      <li>FOMC 블랙아웃 속 7/29(수) 금리 결정 대기 — 9월 인상 확률은 2주 새 52%→82%로 급등</li>
+      <li>실적 시즌 본격화: 캐던스·누코·셀레스티카 서프라이즈 vs UHS·암코어 가이던스 실망</li>
+      <li>독일 Ifo 3개월 연속 개선, 유로존 PMI도 확장 전환 — 유럽 경기 훈풍 조짐</li>
+    </ul>
+  </div>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="block-num">01</span>
+      <h2>간단 시황 브리핑</h2>
+    </div>
+
+    <div class="market-grid">
+      <div class="market-card">
+        <p class="cat">주식 <span style="font-weight:400; text-transform:none; letter-spacing:0;">— 레벨 · 전일比 포인트(%)</span></p>
+        <div class="row"><span class="lbl">S&amp;P 500</span><span class="valwrap"><span class="val">7,413.18</span><span class="chg up">+1.20 (+0.02%)</span></span></div>
+        <div class="row"><span class="lbl">나스닥종합</span><span class="valwrap"><span class="val">24,932.08</span><span class="chg down">-43.74 (-0.18%)</span></span></div>
+        <div class="row"><span class="lbl">다우존스</span><span class="valwrap"><span class="val">52,210.08</span><span class="chg up">+262.83 (+0.51%)</span></span></div>
+        <div class="row"><span class="lbl">STOXX 600</span><span class="valwrap"><span class="val">644.52</span><span class="chg">보합 (±0.02% 이내)</span></span></div>
+        <div class="row"><span class="lbl">FTSE 100</span><span class="valwrap"><span class="val">10,781</span><span class="chg up">+45 (+0.42%)</span></span></div>
+        <div class="row"><span class="lbl">DAX</span><span class="valwrap"><span class="val">25,361.03</span><span class="chg up">+262 (+1.04%)</span></span></div>
+        <div class="row"><span class="lbl">CAC 40</span><span class="valwrap"><span class="val">8,406.06</span><span class="chg up">+33.78 (+0.40%)</span></span></div>
+      </div>
+
+      <div class="market-card">
+        <p class="cat">채권 <span style="font-weight:400; text-transform:none; letter-spacing:0;">— 금리 · 전일比 bp</span></p>
+        <div class="row"><span class="lbl">美 10년물</span><span class="valwrap"><span class="val">4.65%</span><span class="chg down">-3bp</span></span></div>
+        <div class="row"><span class="lbl">美 2년물</span><span class="valwrap"><span class="val">4.32%</span><span class="chg down">-1bp</span></span></div>
+        <div class="row"><span class="lbl">美 2Y-10Y 스프레드<span class="lblnote">추정치(2Y·10Y 역산)</span></span><span class="valwrap"><span class="val">+33bp</span><span class="chg down">-2bp</span></span></div>
+        <div class="row"><span class="lbl">英 10년물 길트</span><span class="valwrap"><span class="val">4.97%</span><span class="chg down">-6bp</span></span></div>
+        <div class="row"><span class="lbl">獨 10년물 분트</span><span class="valwrap"><span class="val">3.13%</span><span class="chg down">-4bp</span></span></div>
+        <div class="row"><span class="lbl">佛 10년물 OAT<span class="lblnote">출처 간 3~4bp 편차</span></span><span class="valwrap"><span class="val">약 3.90%</span><span class="chg down">-6bp</span></span></div>
+        <div class="row"><span class="lbl">美 HY 스프레드<span class="lblnote">7/23 기준, 일간 변화 미확인</span></span><span class="valwrap"><span class="val">277bp</span></span></div>
+        <div class="row"><span class="lbl">美 30년 모기지<span class="lblnote">7/23 주간 발표, 일간 변화 미확인</span></span><span class="valwrap"><span class="val">6.58%</span></span></div>
+      </div>
+
+      <div class="market-card">
+        <p class="cat">원자재 <span style="font-weight:400; text-transform:none; letter-spacing:0;">— 가격 · 전일比 $(%)</span></p>
+        <div class="row"><span class="lbl">WTI</span><span class="valwrap"><span class="val">$82.61</span><span class="chg down">-$6.70 (-7.50%)</span></span></div>
+        <div class="row"><span class="lbl">美 휘발유 소매가<span class="lblnote">AAA 전국평균, 7/23 발표(주간)</span></span><span class="valwrap"><span class="val">$4.09/갤런</span><span class="chg down">전주比 +$0.15 (+3.8%)</span></span></div>
+        <div class="row"><span class="lbl">천연가스(TTF)<span class="lblnote">출처 간 -7.7~-8.8% 편차</span></span><span class="valwrap"><span class="val">€58.1/MWh</span><span class="chg down">약 -€5.0 (-7.9%)</span></span></div>
+        <div class="row"><span class="lbl">금(spot)<span class="lblnote">종가 기준 출처 간 편차 있음</span></span><span class="valwrap"><span class="val">약 $4,088~4,090</span><span class="chg up">+$30~35 (+0.7~0.8%)</span></span></div>
+      </div>
+
+      <div class="market-card">
+        <p class="cat">환율 <span style="font-weight:400; text-transform:none; letter-spacing:0;">— 레벨 · 전일比(%)</span></p>
+        <div class="row"><span class="lbl">달러인덱스(DXY)</span><span class="valwrap"><span class="val">101.18</span><span class="chg down">-0.28%</span></span></div>
+        <div class="row"><span class="lbl">EUR/USD</span><span class="valwrap"><span class="val">1.1418</span><span class="chg up">+0.0049 (+0.43%)</span></span></div>
+        <div class="row"><span class="lbl">USD/JPY</span><span class="valwrap"><span class="val">163.57</span><span class="chg down">-0.21엔 (-0.13%)</span></span></div>
+        <div class="row"><span class="lbl">USD/KRW</span><span class="valwrap"><span class="val">1,468.5원</span><span class="chg up">+1.9원 (+0.13%)</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="block-num">02</span>
+      <h2>주요 경제지표 발표</h2>
+    </div>
+
+    <h3 class="sub"><span class="flag">US</span>미국</h3>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">내구재 수주 (Durable Goods Orders, 잠정치, 6월)</span>
+        <span class="itime">현지시간(ET) 08:30 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">+0.3%</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval down">-4.0%</span></span>
+        <span class="dpoint"><span class="dlabel">예상치</span><span class="dval">+2.5%</span></span>
+      </div>
+      <p class="icomment">운송장비 수주 부진(-0.6%)이 발목을 잡아 예상치를 크게 하회. 항공기 수주는 +3.7%로 선방</p>
+    </div>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">핵심 자본재 수주 (비국방·항공기 제외, 6월)</span>
+        <span class="itime">현지시간(ET) 08:30 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">+0.9%</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval up">+1.9%</span></span>
+        <span class="dpoint"><span class="dlabel">예상치</span><span class="dval">+0.8%</span></span>
+      </div>
+      <p class="icomment">5월치가 상향 수정된 데 이어 6월도 견조, AI 관련 설비투자 지속 시사</p>
+    </div>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">내구재 출하 (6월)</span>
+        <span class="itime">현지시간(ET) 08:30 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">+0.7%</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval up">+1.1%</span></span>
+      </div>
+      <p class="icomment">$330.7B, 5월에 이어 2개월 연속 증가</p>
+    </div>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">댈러스 연은 제조업지수 (7월)</span>
+        <span class="itime">현지시간(CT) 10:30 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">1.3</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval">0.0</span></span>
+      </div>
+      <p class="icomment">생산·신규주문 세부지수 동반 개선, 기업 전망지수도 상승</p>
+    </div>
+
+    <h3 class="sub"><span class="flag">EU/UK</span>유럽</h3>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">독일 Ifo 기업환경지수 (7월)</span>
+        <span class="itime">현지시간(CEST) 10:00 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">86.6</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval">85.6</span></span>
+        <span class="dpoint"><span class="dlabel">예상치</span><span class="dval">약 86.0</span></span>
+      </div>
+      <p class="icomment">3개월 연속 상승. 기대지수는 84.3→86.7로 크게 개선됐지만 현재상황지수는 87.0→86.5로 소폭 하락 — Ifo는 "지정학적 긴장 속 회복세는 여전히 취약"이라 평가</p>
+    </div>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">유로존 플래시 PMI 종합 (7월, 참고치)</span>
+        <span class="itime">현지시간(CET) 10:00 · 7/24</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval up">51.9</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval">50.0</span></span>
+        <span class="dpoint"><span class="dlabel">예상치</span><span class="dval">50.3</span></span>
+      </div>
+      <p class="icomment">4개월 만에 확장 국면 전환(제조업 52.0, 서비스업 51.6). 7/27 마감 흐름의 배경 지표로 참고</p>
+    </div>
+
+    <div class="indicator">
+      <div class="indicator-head">
+        <span class="iname">영국 CBI 유통업 서베이 (7월)</span>
+        <span class="itime">현지시간(GMT) 11:00 · 7/27</span>
+      </div>
+      <div class="idata">
+        <span class="dpoint"><span class="dlabel">발표치</span><span class="dval down">-26%</span></span>
+        <span class="dpoint"><span class="dlabel">직전치</span><span class="dval down">-54%</span></span>
+      </div>
+      <p class="icomment">여전히 마이너스권이나 소매판매 체감 낙폭은 대폭 축소</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="block-num">03</span>
+      <h2>주요 경제 뉴스</h2>
+    </div>
+
+    <h3 class="sub">연준 · ECB · BOE</h3>
+    <p class="news"><span class="tag">Fed —</span> 7/28~30 FOMC 회의를 앞두고 블랙아웃 기간(7/18~30)이라 7/27 공식 발언은 없었음. 블랙아웃 직전 쿡·제퍼슨·월러 이사 등은 "인플레이션이 둔화되지 않으면 긴축적 대응이 필요하다"며 매파적 신호를 보냄. 선물시장은 7/29 회의 동결 확률을 약 61%로, 9월 회의까지의 인상 확률은 7/16 52%에서 7/27 82%로 크게 높여 반영 중(이란 전쟁발 유가 급등 영향)</p>
+    <p class="news"><span class="tag">ECB —</span> 라가르드 총재는 7/23 회의(금리 동결)에서 "활동·서비스업이 일부 회복됐다"고 언급하며 9월 추가 조치 가능성을 열어둠. 유가·이란 전쟁이 인플레이션에 미칠 2차 파급 효과를 주시하겠다고 밝힘</p>
+    <p class="news"><span class="tag">BOE —</span> 베일리 총재는 ECB만큼 공격적인 인상은 필요치 않다는 입장. 7/30 회의에서는 3.75% 동결이 우세한 전망이나 서비스물가 부담으로 매파적 논조가 예상됨. 필 수석 이코노미스트는 연내 추가 인상 필요성을 시사</p>
+
+    <h3 class="sub">지정학 · 정책 이슈</h3>
+    <p class="news"><span class="tag">美-이란 —</span> 13일 연속 공습 이후 7/27 양측이 "외교적 공간 확보"를 위해 공격을 잠정 중단. 트럼프 대통령은 종전 협상 진행을 언급했으나, 앞서 임시 휴전이 사실상 종료됐다는 취지의 발언도 해 정세는 여전히 유동적</p>
+    <p class="news"><span class="tag">美 관세 —</span> 60개국 대상 상호관세(10~12.5%) 및 강제노동 관련 301조 관세가 7/24 발효. 캐나다·멕시코와의 USMCA 갱신 협상은 결렬됐고, 트럼프 대통령은 7/20 캐나다산 와인·주류·하키스틱·시멘트 등에 338조에 따른 추가 50% 관세 부과에 서명</p>
+
+    <h3 class="sub">기타 뉴스</h3>
+    <p class="news"><span class="tag">AI 순환금융 —</span> 엔비디아가 오픈AI의 오하이오 대형 데이터센터(소프트뱅크 주도, 10GW 규모 $500B 프로젝트) 임차 비용을 위해 최대 $250B 신용보증을 검토 중이라고 블룸버그가 보도. 오픈AI가 투자등급 신용등급이 없어 나온 방안으로, 엔비디아의 별도 칩 구매대금 지원(최대 $350B)까지 겹치며 "순환 AI 금융" 우려가 재점화(Bloomberg·CNBC·WSJ, 7/26~27)</p>
+    <p class="news"><span class="tag">반도체 급락 —</span> 필라델피아 반도체지수가 3거래일 연속 하락, AMD -8.3%·엔비디아 -4.9%. AI 설비투자 지속 가능성에 대한 불안이 견조한 실적 시즌 분위기를 압도(Bloomberg·CNBC·Reuters, 7/27) — 이날 나스닥 약세의 주된 배경</p>
+    <p class="news"><span class="tag">메모리 품귀 —</span> 삼성전자·SK하이닉스·마이크론이 생산을 AI용 HBM에 집중하면서 소비자용 D램·낸드 공급이 급격히 부족해지는 중. SK하이닉스 CEO는 "품귀가 2030년 이후까지 이어질 수 있다"고 언급했고, 관련주는 최근 한 주 사이 고점 대비 20%대 조정(Bloomberg, CNBC)</p>
+    <p class="news"><span class="tag">EU-구글 —</span> 유럽연합 집행위원회가 디지털시장법(DMA)에 근거해 구글에 안드로이드에서 챗GPT·클로드 등 경쟁 AI 비서에게 제미나이와 동일한 시스템 접근권(웨이크워드·화면 인식 등)을 2027년 7월까지 부여하라고 명령. 위반 시 글로벌 매출의 최대 10% 과징금 가능(7/16 명령, 후속 보도 지속)</p>
+
+    <h3 class="sub">기타 주요국</h3>
+    <p class="news"><span class="tag">중국 —</span> 상반기 산업기업 이익은 전년 대비 +18.7%(3.95조 위안)로 견조했지만, 6월 단독으로는 +15.1%로 올해 들어 가장 낮은 증가율. 전자업종은 AI 수요에 힘입어 +96.9% 급증한 반면 자동차업종은 -19.5%</p>
+    <p class="news"><span class="tag">일본 —</span> 통계 개편으로 7월 도쿄 CPI 발표가 8/7로 연기됨. 가장 최근 확인된 6월 도쿄 CPI는 +1.7%(YoY), 근원 CPI는 +1.6%</p>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="block-num">04</span>
+      <h2>한국시간 기준 오늘의 주요 일정</h2>
+    </div>
+
+    <h3 class="sub"><span class="flag">KR</span>한국</h3>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/29(수) 09:00</span><span class="aname">SK하이닉스 2분기 실적 컨퍼런스콜</span></div>
+      <p class="anote">컨센서스 매출 84.1조원·영업이익 64.1조원(YoY +600%) — AI 메모리 슈퍼사이클을 확인할 지표로 주목. 오늘(7/28) 확정된 주요 지표 발표는 없음</p>
+    </div>
+
+    <h3 class="sub"><span class="flag">JP</span>일본</h3>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/31(금) 15:30</span><span class="aname">BOJ 정책회의 결과 · 총재 기자회견</span></div>
+      <p class="anote">회의는 7/30~31, 분기 전망보고서(GDP·물가 전망)가 포함된 회의. 오늘(7/28)은 예정된 주요 이벤트 없음. 7월 도쿄 CPI 발표일은 미확인(통계 개편 영향)</p>
+    </div>
+
+    <h3 class="sub"><span class="flag">CN</span>중국</h3>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/31(금)</span><span class="aname">7월 국가통계국(NBS) 제조업 PMI</span></div>
+      <p class="anote">오늘(7/28) 예정된 주요 지표는 없음. 하반기 경제정책 방향을 다룰 정치국 회의가 "7월 말" 개최 예정이라는 보도가 있으나 정확한 날짜는 미확인 — 이번 주 내 주시 필요</p>
+    </div>
+
+    <h3 class="sub"><span class="flag">US</span>미국</h3>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/28 시작 · 결과 7/30 03:00</span><span class="aname">FOMC 회의 (7/28~29, 현지시간)</span></div>
+      <p class="anote">정책 결정 발표 현지시간 7/29 오후 2시 ET(한국시간 7/30 오전 3시), 기자회견 오후 2시 30분 ET(한국시간 오전 3시 30분). 워시 의장 취임 후 두 번째 회의, 이번엔 점도표 미공개</p>
+    </div>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/28 23:00</span><span class="aname">컨퍼런스보드 소비자신뢰지수 (7월)</span></div>
+      <p class="anote">현지시간 오전 10시 ET 발표</p>
+    </div>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/28 밤~7/29 새벽<span style="font-weight:400;">(정확한 시각 미확인)</span></span><span class="aname">S&amp;P 코털리티 케이스-실러 주택가격지수 (5월)</span></div>
+      <p class="anote">통상 현지시간 오전 9시 ET 전후 발표</p>
+    </div>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/28 저녁~밤</span><span class="aname">대형주 실적: UPS·보잉·코카콜라·페이팔·힐튼 등</span></div>
+      <p class="anote">현지시간 7/28 장 개장 전후 발표 다수</p>
+    </div>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/30·31 새벽 예고</span><span class="aname">빅테크 실적: MS·메타(7/30 새벽) → 애플·아마존(7/31 새벽)</span></div>
+      <p class="anote">현지시간 7/29·30 장 마감 후 발표. 알파벳은 이미 7/22 발표(2026년 설비투자 가이던스 $195~205B로 상향, 분기 첫 마이너스 잉여현금흐름)해 이번 주 빅테크 실적 부담 요인으로 작용 중</p>
+    </div>
+
+    <h3 class="sub"><span class="flag">EU</span>유럽</h3>
+    <div class="agenda-item">
+      <div class="agenda-head"><span class="atime">7/30</span><span class="aname">유로존 2분기 GDP 잠정치</span></div>
+      <p class="anote">1분기 -0.2% QoQ에서 개선 기대. 오늘(7/28) 예정된 주요 지표·정치 이벤트는 확인되지 않음</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <span class="block-num">05</span>
+      <h2>주요 기업 실적발표</h2>
+    </div>
+    <p class="news" style="margin-bottom:14px; color:var(--ink-faint); font-size:13px;">7/27 발표 기준 · 이날은 유럽 대형주 실적 발표는 없었고 美 중대형주 위주로 실적 시즌이 이어짐</p>
+
+    <div class="table-wrap">
+      <table class="earnings">
+        <thead>
+          <tr>
+            <th>기업</th>
+            <th>매출 (실제/예상)</th>
+            <th>EPS (실제/예상)</th>
+            <th>코멘트</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="co">Cadence Design</div><div class="ticker">CDNS</div></td>
+            <td class="num">$1.584B / ~$1.61B <span class="pill miss">미스</span></td>
+            <td class="num">$2.11 / $2.05~06 <span class="pill beat">비트</span></td>
+            <td>FY 가이던스 상향, 시간외 +4%</td>
+          </tr>
+          <tr>
+            <td><div class="co">Nucor</div><div class="ticker">NUE</div></td>
+            <td class="num">$10.40B / $10.14~15B <span class="pill beat">비트</span></td>
+            <td class="num">$4.84 / $4.46 <span class="pill beat">비트</span></td>
+            <td>어닝 호조에도 주가는 보합</td>
+          </tr>
+          <tr>
+            <td><div class="co">Cincinnati Financial</div><div class="ticker">CINF</div></td>
+            <td class="num">$4.27B / $2.71B <span class="pill beat">비트</span></td>
+            <td class="num">$1.43 / $1.84 <span class="pill miss">미스</span></td>
+            <td>매출 서프라이즈는 투자이익 급증 영향, 주가는 상승</td>
+          </tr>
+          <tr>
+            <td><div class="co">F5</div><div class="ticker">FFIV</div></td>
+            <td class="num">$865.1M / $834.6M <span class="pill beat">비트</span></td>
+            <td class="num">$4.73 / $4.00 <span class="pill beat">비트</span></td>
+            <td>가이던스 상향, 주가 +2%</td>
+          </tr>
+          <tr>
+            <td><div class="co">Amkor Technology</div><div class="ticker">AMKR</div></td>
+            <td class="num">$1.90B / $1.81B <span class="pill beat">비트</span></td>
+            <td class="num">$0.70 / $0.47 <span class="pill beat">비트</span></td>
+            <td>사상 최대 매출에도 Q3 가이던스 부진, 상승분 반납 후 -6.5%</td>
+          </tr>
+          <tr>
+            <td><div class="co">Universal Health Services</div><div class="ticker">UHS</div></td>
+            <td class="num">$4.64B / $4.52B <span class="pill beat">비트</span></td>
+            <td class="num">$5.98 <span class="pill">컨센서스 부합</span></td>
+            <td>FY 가이던스 컨센서스 하회, 주가 -4~6%</td>
+          </tr>
+          <tr>
+            <td><div class="co">Celestica</div><div class="ticker">CLS</div></td>
+            <td class="num">$4.70B <span class="pill beat">+62% YoY</span></td>
+            <td class="num">$2.41~54 / $2.29 <span class="pill beat">비트</span></td>
+            <td>FY 매출·EPS 가이던스 대폭 상향, 시간외 +7%</td>
+          </tr>
+          <tr>
+            <td><div class="co">Rambus</div><div class="ticker">RMBS</div></td>
+            <td class="num">$207.4M / $202.3M <span class="pill beat">비트</span></td>
+            <td class="num">$0.77 / $0.72~73 <span class="pill beat">비트</span></td>
+            <td>사상 최대 매출, 시간외 소폭 상승</td>
+          </tr>
+          <tr>
+            <td><div class="co">Welltower</div><div class="ticker">WELL</div></td>
+            <td class="num">$3.54B / $3.40B <span class="pill beat">비트</span></td>
+            <td class="num">$0.61 / $0.64 <span class="pill miss">미스</span></td>
+            <td>FFO 가이던스 상향에 EPS 미스에도 주가 +4%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    美-이란 정세 급변으로 유가·안전자산 가격 변동성이 큰 시기입니다. 佛 10년물 국채·美 IG/HY 스프레드·모기지 금리·휘발유 소매가 등 일부 항목은 7/27 당일 수치 확인이 제한적이거나 출처 간 편차가 있어 별도로 표기했습니다. 2Y-10Y 스프레드는 개별 보도가 아닌 2년물·10년물 금리로부터 역산한 추정치입니다. 수치는 Yahoo Finance, CNBC, Bloomberg, Reuters, Trading Economics, AAA(gasprices.aaa.com), 각사 IR 자료, Newsis 등 공개 보도를 취합했습니다. 투자 판단의 참고 자료이며 투자 권유가 아닙니다.
+  </footer>
+
+</div>
+</body>
+</html>
